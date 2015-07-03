@@ -33,7 +33,7 @@ enum {
 
 
 
-int 	g_iOffset_CollisionGroup;
+//int 	g_iOffset_CollisionGroup;
 
 /**
 * MapConfig settings
@@ -76,7 +76,7 @@ bool 	g_bInMap = false;
 public void OnPluginStart(){
 	LoadConfig();
 
-	g_iOffset_CollisionGroup 	= FindSendPropOffs("CBaseEntity", "m_CollisionGroup");
+	//g_iOffset_CollisionGroup 	= FindSendPropOffs("CBaseEntity", "m_CollisionGroup");
 
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 	HookEvent("round_start", Event_RoundStart, EventHookMode_Post);
@@ -184,8 +184,11 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBro
 	if(g_Settings_bNoBlock){
 		switch(g_Settings_iNoBlockMethod){
 			case NOBLOCK_TYPE_COLLISIONGROUP:{
-				if(g_iOffset_CollisionGroup != -1)
-					SetEntData(client, g_iOffset_CollisionGroup, 2, 4, true);
+				//if(g_iOffset_CollisionGroup != -1)
+				//	SetEntData(client, g_iOffset_CollisionGroup, 2, 4, true);
+
+				if(Entity_GetCollisionGroup(client) != COLLISION_GROUP_DEBRIS_TRIGGER)
+					Entity_SetCollisionGroup(client, COLLISION_GROUP_DEBRIS_TRIGGER);
 			}
 			case NOBLOCK_TYPE_SOLIDTYPE:{
 				if(Entity_GetSolidType(client) != SOLID_NONE)
