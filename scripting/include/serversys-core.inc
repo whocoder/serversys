@@ -49,5 +49,7 @@ public __pl_serversys_core_SetNTVOptional()
 {
 	MarkNativeAsOptional("Sys_IsHideEnabled");
 	MarkNativeAsOptional("Sys_ReloadConfiguration");
+    MarkNativeAsOptional("Sys_UseMapConfigs");
+    MarkNativeAsOptional("Sys_InMap");
 }
 #endif

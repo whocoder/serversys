@@ -101,6 +101,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 	CreateNative("Sys_ReloadConfiguration", Native_ReloadConfiguration);
 
+	CreateNative("Sys_InMap", Native_InMap);
+
 	g_bLateLoad = late;
 
 	return APLRes_Success;
@@ -110,18 +112,24 @@ void LoadConfig(char[] map_name = ""){
 	Handle kv = CreateKeyValues("Server-Sys");
 	char Config_Path[PLATFORM_MAX_PATH];
 
-	if((strlen(map_name) > 1) && g_Settings_bMapConfig == true){
-		BuildPath(Path_SM, Config_Path, sizeof(Config_Path), "configs/server-core/maps/%s/core.cfg");
+	if(g_bInMap && (strlen(map_name) > 3) && g_Settings_bMapConfig == true){
+		BuildPath(Path_SM, Config_Path, sizeof(Config_Path), "configs/serversys/maps/%s/core.cfg", g_cMapName);
+
+		if(!(FileExists(Config_Path)))
+			BuildPath(Path_SM, Config_Path, sizeof(Config_Path), "configs/serversys/core.cfg");
+	}
+	else
+	{
+		BuildPath(Path_SM, Config_Path, sizeof(Config_Path), "configs/serversys/core.cfg");
 	}
 
-	if(( (strlen(map_name) <= 1) || (!g_Settings_bMapConfig) || !(FileExists(Config_Path)) ))
-	{
-		BuildPath(Path_SM, Config_Path, sizeof(Config_Path), "configs/server-core/core.cfg");
+	if(!(FileExists(Config_Path))){
+		SetFailState("[serversys] core :: Cannot read from configuration file: %s", Config_Path);
 	}
 
 	if(!FileToKeyValues(kv, Config_Path)){
 		CloseHandle(kv);
-		SetFailState("Can't read from configuration file: %s", Config_Path);
+		SetFailState("[serversys] core :: Cannot read from configuration file: %s", Config_Path);
     }
 
 	if(KvJumpToKey(kv, "mapconfigs")){
