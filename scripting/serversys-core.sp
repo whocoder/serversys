@@ -134,6 +134,7 @@ void LoadConfig(char[] map_name = ""){
 
 	if(KvJumpToKey(kv, "mapconfigs")){
 		g_Settings_bMapConfig = view_as<bool>KvGetNum(kv, "enabled", 1);
+		KvGoBack(kv);
 	}
 	else
 		g_Settings_bMapConfig = false;
@@ -144,6 +145,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bHideNoClip = view_as<bool>KvGetNum(kv, "hide_noclip", 1);
 
 		g_Settings_iHideMethod = KvGetNum(kv, "method", HIDE_NORMAL);
+		KvGoBack(kv);
 	}
 	else
 		g_Settings_bHide = false;
@@ -152,6 +154,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bNoBlock = view_as<bool>KvGetNum(kv, "enabled", 0);
 
 		g_Settings_iNoBlockMethod = KvGetNum(kv, "method", NOBLOCK_TYPE_COLLISIONGROUP);
+		KvGoBack(kv);
 	}
 	else
 		g_Settings_bNoBlock = false;
@@ -162,6 +165,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_iSpawnProtection_Method = KvGetNum(kv, "method", SPAWNPROTECT_GODMODE);
 
 		g_Settings_fSpawnProtection_Length = KvGetFloat(kv, "length", 5.0);
+		KvGoBack(kv);
 	}
 	else
 		g_Settings_bSpawnProtection = false;
