@@ -91,16 +91,6 @@ public void OnPluginStart(){
 	}
 }
 
-public void OnMapStart(){
-	g_bInMap = true;
-	GetCurrentMap(g_cMapName, sizeof(g_cMapName));
-}
-
-public void OnMapEnd(){
-	g_bInMap = false;
-	Format(g_cMapName, sizeof(g_cMapName), "");
-}
-
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	RegPluginLibrary("serversys");
@@ -322,10 +312,16 @@ public Action Timer_SpawnProtection(Handle timer, any client){
 }
 
 public void OnMapStart(){
+	g_bInMap = true;
+	GetCurrentMap(g_cMapName, sizeof(g_cMapName));
 	if(g_Settings_bMapConfig){
-		GetCurrentMap(g_cMapName, sizeof(g_cMapName));
 		CreateTimer(0.5, OnMapStart_Timer_LoadConfig);
 	}
+}
+
+public void OnMapEnd(){
+	g_bInMap = false;
+	Format(g_cMapName, sizeof(g_cMapName), "");
 }
 
 public Action OnMapStart_Timer_LoadConfig(Handle timer){
