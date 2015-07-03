@@ -8,9 +8,9 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-public Plugin ServerCore = {
-	name = "[Server-Core] Core",
-	description = "StrafeOdyssey.com",
+public Plugin ServerSys = {
+	name = "[Server-Sys] Core",
+	description = "Server-Sys - simple, yet advanced server management.",
 	author = "cam",
 	version = SERVERSYS_VERSION,
 	url = SERVERSYS_URL
