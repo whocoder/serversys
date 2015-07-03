@@ -17,8 +17,8 @@ public Plugin ServerCore = {
 }
 
 enum {
-	NOBLOCK_COLLISIONGROUP = 0,
-	NOBLOCK_SOLIDTYPE = 1
+	NOBLOCK_TYPE_COLLISIONGROUP = 0,
+	NOBLOCK_TYPE_SOLIDTYPE = 1
 }
 
 enum {
@@ -135,7 +135,7 @@ void LoadConfig(char[] map_name = ""){
     }
 
 	if(KvJumpToKey(kv, "mapconfigs")){
-		g_Settings_bMapConfig = view_as<bool>KvGetNum(kv, "mapconfigs", 1);
+		g_Settings_bMapConfig = view_as<bool>KvGetNum(kv, "enabled", 1);
 	}
 	else
 		g_Settings_bMapConfig = false;
@@ -153,7 +153,7 @@ void LoadConfig(char[] map_name = ""){
 	if(KvJumpToKey(kv, "noblock")){
 		g_Settings_bNoBlock = view_as<bool>KvGetNum(kv, "enabled", 0);
 
-		g_Settings_iNoBlockMethod = KvGetNum(kv, "method", NOBLOCK_COLLISIONGROUP);
+		g_Settings_iNoBlockMethod = KvGetNum(kv, "method", NOBLOCK_TYPE_COLLISIONGROUP);
 	}
 	else
 		g_Settings_bNoBlock = false;
@@ -185,11 +185,11 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBro
 
 	if(g_Settings_bNoBlock){
 		switch(g_Settings_iNoBlockMethod){
-			case NOBLOCK_COLLISIONGROUP:{
+			case NOBLOCK_TYPE_COLLISIONGROUP:{
 				if(g_iOffset_CollisionGroup != -1)
 					SetEntData(client, g_iOffset_CollisionGroup, 2, 4, true);
 			}
-			case NOBLOCK_SOLIDTYPE:{
+			case NOBLOCK_TYPE_SOLIDTYPE:{
 				if(Entity_GetSolidType(client) != SOLID_NONE)
 					Entity_SetSolidType(client, SOLID_NONE);
 			}
