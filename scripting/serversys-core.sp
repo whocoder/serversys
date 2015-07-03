@@ -115,7 +115,7 @@ void LoadConfig(char[] map_name = ""){
 	if(g_bInMap && (strlen(map_name) > 3) && g_Settings_bMapConfig == true){
 		BuildPath(Path_SM, Config_Path, sizeof(Config_Path), "configs/serversys/maps/%s/core.cfg", g_cMapName);
 
-		if(!(FileExists(Config_Path)))
+		if(!(FileExists(Config_Path)) || !(FileToKeyValues(kv, Config_Path)))
 			BuildPath(Path_SM, Config_Path, sizeof(Config_Path), "configs/serversys/core.cfg");
 	}
 	else
@@ -123,27 +123,28 @@ void LoadConfig(char[] map_name = ""){
 		BuildPath(Path_SM, Config_Path, sizeof(Config_Path), "configs/serversys/core.cfg");
 	}
 
-	if(!(FileExists(Config_Path))){
-		SetFailState("[serversys] core :: Cannot read from configuration file: %s", Config_Path);
-	}
-
-	if(!FileToKeyValues(kv, Config_Path)){
+	if(!(FileExists(Config_Path)) || !(FileToKeyValues(kv, Config_Path))){
 		CloseHandle(kv);
 		SetFailState("[serversys] core :: Cannot read from configuration file: %s", Config_Path);
     }
 
 	if(KvJumpToKey(kv, "mapconfigs")){
 		g_Settings_bMapConfig = view_as<bool>KvGetNum(kv, "enabled", 1);
+
+		KvGoBack(kv);
 	}
 	else
 		g_Settings_bMapConfig = false;
 
 	if(KvJumpToKey(kv, "hide")){
 		g_Settings_bHide = view_as<bool>KvGetNum(kv, "enabled", 1);
+		
 		g_Settings_bHideDead = view_as<bool>KvGetNum(kv, "hide_dead", 1);
-		g_Settings_bHideNoClip = view_as<bool>KvGetNum(kv, "hide_noclip", 1);
+		g_Settings_bHideNoClip = view_as<bool>KvGetNum(kv, "hide_noclip", 0);
 
 		g_Settings_iHideMethod = KvGetNum(kv, "method", HIDE_NORMAL);
+
+		KvGoBack(kv);
 	}
 	else
 		g_Settings_bHide = false;
@@ -152,6 +153,8 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bNoBlock = view_as<bool>KvGetNum(kv, "enabled", 0);
 
 		g_Settings_iNoBlockMethod = KvGetNum(kv, "method", NOBLOCK_TYPE_COLLISIONGROUP);
+
+		KvGoBack(kv);
 	}
 	else
 		g_Settings_bNoBlock = false;
@@ -162,6 +165,8 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_iSpawnProtection_Method = KvGetNum(kv, "method", SPAWNPROTECT_GODMODE);
 
 		g_Settings_fSpawnProtection_Length = KvGetFloat(kv, "length", 5.0);
+
+		KvGoBack(kv);
 	}
 	else
 		g_Settings_bSpawnProtection = false;
@@ -201,12 +206,8 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBro
 		if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_GODMODE){
 			g_bSpawnProtection[client] = true;
 			PrintTextChat(client, "You will have temporary spawn protection.");
-			CreateTimer(g_Settings_fSpawnProtection_Length, Timer_SpawnProtection, client);
+			CreateTimer(g_Settings_fSpawnProtection_Length, Timer_SpawnProtection, GetClientUserId(client));
 		}
-	}
-	else
-	{
-		g_bSpawnProtection[client] = false;
 	}
 }
 
@@ -227,8 +228,10 @@ public Action Hook_SetTransmit(int entity, int client){
 			if(g_Settings_bHideDead && !(IsPlayerAlive(entity)))
 				return Plugin_Handled;
 
-			if(g_Settings_bHideNoClip && GetEntityMoveType(entity) == MOVETYPE_NOCLIP)
+			if(g_Settings_bHideNoClip && (GetEntityMoveType(entity) == MOVETYPE_NOCLIP))
 				return Plugin_Handled;
+			else
+				return Plugin_Continue;
 		}
 	}
 
@@ -260,7 +263,7 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool PreventBro
 	*/
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 
-	if(g_Settings_bSpawnProtection && g_bSpawnProtection[client]){
+	if(g_Settings_bSpawnProtection && g_bSpawnProtectionGlobal){
 		if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_RESPAWN){
 			PrintTextChatAll("%N will be respawned for dying early.", client);
 		}
@@ -294,17 +297,20 @@ public Action Event_RoundEnd(Handle event, const char[] name, bool PreventBroadc
 	}
 }
 
-public Action Timer_SpawnProtection(Handle timer, any client){
+public Action Timer_SpawnProtection(Handle timer, any clientID){
 	if(g_Settings_bSpawnProtection){
 		switch(g_Settings_iSpawnProtection_Method){
 			case SPAWNPROTECT_GODMODE:{
-				if((0 < client <= MaxClients) && IsClientInGame(client) && IsPlayerAlive(client)){
-					g_bSpawnProtection[client] = false;
-					PrintTextChat(client, "Your spawn protection has expired.");
+				if(clientID != 0){
+					int client = GetClientOfUserId(clientID);
+					if((0 < client <= MaxClients) && IsClientInGame(client) && IsPlayerAlive(client)){
+						g_bSpawnProtection[client] = false;
+						PrintTextChat(client, "Your spawn protection has expired.");
+					}
 				}
 			}
 			case SPAWNPROTECT_RESPAWN:{
-				if(g_bSpawnProtectionGlobal){
+				if(clientID == 0 && g_bSpawnProtectionGlobal){
 					for(int i = 1; i <= MaxClients; i++){
 						if(IsClientConnected(i) && IsClientInGame(i) && !(IsPlayerAlive(i))){
 							switch(GetClientTeam(i)){

@@ -15,5 +15,10 @@ SourceMod Server-Sys is a simple, yet advanced server configuration system. For 
 * [SourceMod](http://sourcemod.net/) 1.7+
 * [SMLib](http://github.com/bcserv/smlib/)
 
+## Intended Features
+* [x] Map configuration integration
+* [ ] Database with Server ID registration (will probably be a key in core.cfg)
+* [ ] Play-time tracker (Server ID specific + Total overall)
+
 ## Contribute!
 I am always open to merge any changes that are for the good. Please feel free to contribute.
