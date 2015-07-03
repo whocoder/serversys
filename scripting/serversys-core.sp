@@ -1,8 +1,9 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <cstrike>
+#include <smlib>
 
-#include <server-core>
+#include <serversys>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -11,23 +12,23 @@ public Plugin ServerCore = {
 	name = "[Server-Core] Core",
 	description = "StrafeOdyssey.com",
 	author = "cam",
-	version = S_CORE_VERSION,
-	url = S_CORE_URL
+	version = SERVERSYS_VERSION,
+	url = SERVERSYS_URL
 }
 
-enum Method_NB {
-	NOBLOCK_COLLISIONGROUP,
-	NOBLOCK_SOLIDTYPE
+enum {
+	NOBLOCK_COLLISIONGROUP = 0,
+	NOBLOCK_SOLIDTYPE = 1
 }
 
-enum Method_SP {
-	SPAWNPROTECT_GODMODE,
-	SPAWNPROTECT_RESPAWN
+enum {
+	SPAWNPROTECT_GODMODE = 0,
+	SPAWNPROTECT_RESPAWN = 1
 }
 
-enum Method_Hide {
-	HIDE_NORMAL,
-	HIDE_TEAM
+enum {
+	HIDE_NORMAL = 0,
+	HIDE_TEAM = 1
 }
 
 
@@ -35,10 +36,15 @@ enum Method_Hide {
 int 	g_iOffset_CollisionGroup;
 
 /**
+* MapConfig settings
+*/
+bool g_Settings_bMapConfig;
+
+/**
 * NoBlock settings
 */
 bool g_Settings_bNoBlock;
-Method_NB g_Settings_iNoBlockMethod;
+int g_Settings_iNoBlockMethod;
 
 /**
 * Hide settings
@@ -46,14 +52,14 @@ Method_NB g_Settings_iNoBlockMethod;
 bool g_Settings_bHide;
 bool g_Settings_bHideDead;
 bool g_Settings_bHideNoClip;
-Method_Hide g_Settings_iHideMethod;
+int g_Settings_iHideMethod;
 
 /**
 * Spawn protection settings
 */
 bool	g_Settings_bSpawnProtection;
 float	g_Settings_fSpawnProtection_Length;
-Method_SP g_Settings_iSpawnProtection_Method;
+int g_Settings_iSpawnProtection_Method;
 
 /**
 * Server functionality variables
@@ -65,10 +71,9 @@ bool	g_bHideEnabled[MAXPLAYERS+1] = {false, ...};
 char	g_cMapName[64];
 
 bool 	g_bLateLoad = false;
+bool 	g_bInMap = false;
 
 public void OnPluginStart(){
-	g_hSettings = RegClientCookie("strafeodyssey", "Global options for all servers", CookieAccess_Public);
-
 	LoadConfig();
 
 	g_iOffset_CollisionGroup 	= FindSendPropOffs("CBaseEntity", "m_CollisionGroup");
@@ -78,16 +83,29 @@ public void OnPluginStart(){
 	HookEvent("round_end", Event_RoundEnd, EventHookMode_Post);
 	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
 
-
-	for(int i = 1; i <= MaxClients; i++){
-		if(IsClientConnected(i) && IsClientInGame(i))
-			OnClientPutInServer(i);
+	if(g_bLateLoad){
+		for(int i = 1; i <= MaxClients; i++){
+			if(IsClientConnected(i))
+				OnClientPutInServer(i);
+		}
 	}
+}
+
+public void OnMapStart(){
+	g_bInMap = true;
+	GetCurrentMap(g_cMapName, sizeof(g_cMapName));
+}
+
+public void OnMapEnd(){
+	g_bInMap = false;
+	Format(g_cMapName, sizeof(g_cMapName), "");
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	RegPluginLibrary("serversys");
+
+	CreateNative("Sys_UseMapConfigs", Native_UseMapConfigs);
 
 	CreateNative("Sys_IsHideEnabled", Native_IsHideEnabled);
 
@@ -98,7 +116,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
-void LoadConfig(char[] map_name){
+void LoadConfig(char[] map_name = ""){
 	Handle kv = CreateKeyValues("Server-Sys");
 	char Config_Path[PLATFORM_MAX_PATH];
 
@@ -165,14 +183,23 @@ public void OnClientPutInServer(int client){
 public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBroadcast){
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 
-	if(g_Settings_bNoBlock && (g_iOffset_CollisionGroup != -1)){
-		SetEntData(client, g_iOffset_CollisionGroup, 2, 4, true);
+	if(g_Settings_bNoBlock){
+		switch(g_Settings_iNoBlockMethod){
+			case NOBLOCK_COLLISIONGROUP:{
+				if(g_iOffset_CollisionGroup != -1)
+					SetEntData(client, g_iOffset_CollisionGroup, 2, 4, true);
+			}
+			case NOBLOCK_SOLIDTYPE:{
+				if(Entity_GetSolidType(client) != SOLID_NONE)
+					Entity_SetSolidType(client, SOLID_NONE);
+			}
+		}
 	}
 
 	if(g_Settings_bSpawnProtection){
 		if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_GODMODE){
 			g_bSpawnProtection[client] = true;
-			PrintColorText(client, "You will have temporary spawn protection.");
+			PrintTextChat(client, "You will have temporary spawn protection.");
 			CreateTimer(g_Settings_fSpawnProtection_Length, Timer_SpawnProtection, client);
 		}
 	}
@@ -234,7 +261,7 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool PreventBro
 
 	if(g_Settings_bSpawnProtection && g_bSpawnProtection[client]){
 		if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_RESPAWN){
-			PrintColorTextAll("%N will be respawned for dying early.", client);
+			PrintTextChatAll("%N will be respawned for dying early.", client);
 		}
 	}
 }
@@ -272,7 +299,7 @@ public Action Timer_SpawnProtection(Handle timer, any client){
 			case SPAWNPROTECT_GODMODE:{
 				if((0 < client <= MaxClients) && IsClientInGame(client) && IsPlayerAlive(client)){
 					g_bSpawnProtection[client] = false;
-					PrintColorText(client, "Your spawn protection has expired.");
+					PrintTextChat(client, "Your spawn protection has expired.");
 				}
 			}
 			case SPAWNPROTECT_RESPAWN:{
@@ -282,7 +309,7 @@ public Action Timer_SpawnProtection(Handle timer, any client){
 							switch(GetClientTeam(i)){
 								case CS_TEAM_T, CS_TEAM_CT:{
 									CS_RespawnPlayer(i);
-									PrintColorText(i, "You have been respawned.");
+									PrintTextChat(i, "You have been respawned.");
 								}
 							}
 						}
@@ -307,6 +334,9 @@ public Action OnMapStart_Timer_LoadConfig(Handle timer){
 }
 
 public int Native_IsHideEnabled(Handle plugin, int numParams){
+	if(!g_Settings_bHide)
+		return false;
+
 	int client 		= GetNativeCell(1);
 
 	if((0 < client <= MaxClients) && IsClientConnected(client))
@@ -324,4 +354,12 @@ public int Native_ReloadConfiguration(Handle plugin, int numParams){
 	}
 	else
 		LoadConfig();
+}
+
+public int Native_UseMapConfigs(Handle plugin, int numParams){
+	return g_Settings_bMapConfig;
+}
+
+public int Native_InMap(Handle plugin, int numParams){
+	return g_bInMap;
 }

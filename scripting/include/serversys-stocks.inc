@@ -1,11 +1,11 @@
-static int g__timer_Engine;
-static bool g__timer_Engine_Checked = false;
+static int s__i_Engine;
+static bool s__b_Engine_Checked = false;
 
 
 /**
 * enum -> GameType
 */
-enum {
+enum SupportedGames {
 	GameType_CSS,
 	GameType_CSGO
 };
@@ -16,7 +16,7 @@ enum {
 * @param format			String to print
 * @param ...			Formatting options
 */
-stock PrintToConsoleAll(char format[], any ...){
+stock void PrintToConsoleAll(char[] format, any ...){
 	char buffer[192];
 
 	for (int i = 1; i <= MaxClients; i++){
@@ -31,48 +31,39 @@ stock PrintToConsoleAll(char format[], any ...){
 /*
 * Used to print messages to all players and allow custom colors
 */
-stock PrintColorTextAll(char msg[], any ...){
-	decl String:buffer[300];
+stock void PrintTextChatAll(char[] msg, any ...){
+	char buffer[300];
 	VFormat(buffer, sizeof(buffer), msg, 2);
 
-	if(GetGameType() != GameType_CSGO){
-		Handle hMessage = StartMessageAll("SayText2");
+	Handle hMessage = StartMessageAll("SayText2");
 
-		if (hMessage != INVALID_HANDLE)
-		{
-			if(GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf)
-			{
-				PbSetInt(hMessage, "ent_idx", 0);
-				PbSetBool(hMessage, "chat", true);
-				PbSetString(hMessage, "msg_name", buffer);
-				if (GetGameType() != GameType_CSGO){
-					PbAddString(hMessage, "params", "");
-					PbAddString(hMessage, "params", "");
-					PbAddString(hMessage, "params", "");
-					PbAddString(hMessage, "params", "");
-				}
-			}
-			else
-			{
-				BfWriteByte(hMessage, 0);
-				BfWriteByte(hMessage, true);
-				BfWriteString(hMessage, buffer);
-			}
-
-			EndMessage();
-		}
-	}
-	else
+	if (hMessage != INVALID_HANDLE)
 	{
-		PrintToConsoleAll(buffer);
-		PrintToChatAll(buffer);
+		if(GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf)
+		{
+			PbSetInt(hMessage, "ent_idx", 0); // optional client
+			PbSetBool(hMessage, "chat", true);
+			PbSetString(hMessage, "msg_name", buffer);
+			PbAddString(hMessage, "params", "");
+			PbAddString(hMessage, "params", "");
+			PbAddString(hMessage, "params", "");
+			PbAddString(hMessage, "params", "");
+		}
+		else
+		{
+			BfWriteByte(hMessage, 0); // optional client
+			BfWriteByte(hMessage, true);
+			BfWriteString(hMessage, buffer);
+		}
+
+		EndMessage();
 	}
 }
 
 /*
 * Forces a cvar's value
 */
-stock ForceConVar(String:cvarname[], String:value[]){
+stock void ForceConVar(char[] cvarname, char[] value){
 	ConVar cvar = FindConVar(cvarname);
 	if(cvar != null)
 		cvar.SetString(value, true);
@@ -81,73 +72,12 @@ stock ForceConVar(String:cvarname[], String:value[]){
 /*
 * Used to print messages to a single player and allows special colors without annoying hexadecimal spam in console
 */
-stock PrintColorText(client, const String:msg[], any:...){
+stock void PrintTextChat(int client, const char[] msg, any ...){
 	if(IsClientInGame(client)){
-		new String:buffer[300];
+		char buffer[300];
 		VFormat(buffer, sizeof(buffer), msg, 3);
-		if(GetGameType() != GameType_CSGO){
 
-			new Handle:hMessage = StartMessageOne("SayText2", client);
-			if (hMessage != INVALID_HANDLE)
-			{
-				if(GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf)
-				{
-					PbSetInt(hMessage, "ent_idx", client);
-					PbSetBool(hMessage, "chat", true);
-					PbSetString(hMessage, "msg_name", buffer);
-					PbAddString(hMessage, "params", "");
-					PbAddString(hMessage, "params", "");
-					PbAddString(hMessage, "params", "");
-					PbAddString(hMessage, "params", "");
-				}
-				else
-				{
-					BfWriteByte(hMessage, client);
-					BfWriteByte(hMessage, true);
-					BfWriteString(hMessage, buffer);
-				}
-
-				EndMessage();
-			}
-		}else{
-			PrintToConsole(client, buffer);
-			PrintToChat(client, buffer);
-		}
-	}
-}
-
-/*
-* Used to print messages to a player's spectators and allows special colors without annoying hexadecimal spam in console
-*/
-stock PrintColorTextObservers(target, const String:msg[], any:...){
-	new String:buffer[300];
-	VFormat(buffer, sizeof(buffer), msg, 3);
-
-	new clients[MaxClients], observercount;
-
-	for(new client = 1; client <= MaxClients; client++)
-	{
-		if(IsClientInGame(client) && !IsPlayerAlive(client) && !IsFakeClient(client))
-		{
-			new observee 		= GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
-			new ObserverMode 	= GetEntProp(client, Prop_Send, "m_iObserverMode");
-
-			if(observee == target && (ObserverMode == 4 || ObserverMode == 5))
-			{
-				if(GetGameType() != GameType_CSGO){
-					clients[observercount++] = client;
-				}else{
-					PrintToChat(client, buffer);
-				}
-			}
-		}
-	}
-
-	if(observercount == 0)
-		return;
-
-	if(GetGameType() != GameType_CSGO){
-		new Handle:hMessage = StartMessage("SayText2", clients, observercount);
+		Handle hMessage = StartMessageOne("SayText2", client);
 		if (hMessage != INVALID_HANDLE)
 		{
 			if(GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf)
@@ -172,10 +102,59 @@ stock PrintColorTextObservers(target, const String:msg[], any:...){
 	}
 }
 
+/*
+* Used to print messages to a player's spectators and allows special colors without annoying hexadecimal spam in console
+*/
+stock void PrintTextChatObservers(int target, const char[] msg, any ...){
+	char buffer[300];
+	VFormat(buffer, sizeof(buffer), msg, 3);
 
-stock ReplaceMessage(String:message[], maxlength){
+	int clients[MaxClients];
+	int observercount;
+
+	for(int client = 1; client <= MaxClients; client++){
+		if(IsClientInGame(client) && !IsPlayerAlive(client) && !IsFakeClient(client)){
+			int observee 		= GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
+			int ObserverMode 	= GetEntProp(client, Prop_Send, "m_iObserverMode");
+
+			if(observee == target && (ObserverMode == 4 || ObserverMode == 5)){
+				clients[observercount++] = client;
+			}
+		}
+	}
+
+	if(observercount == 0)
+		return;
+
+	Handle hMessage = StartMessage("SayText2", clients, observercount);
+	if (hMessage != INVALID_HANDLE)
+	{
+		if(GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf)
+		{
+			PbSetInt(hMessage, "ent_idx", 0);
+			PbSetBool(hMessage, "chat", true);
+			PbSetString(hMessage, "msg_name", buffer);
+			PbAddString(hMessage, "params", "");
+			PbAddString(hMessage, "params", "");
+			PbAddString(hMessage, "params", "");
+			PbAddString(hMessage, "params", "");
+		}
+		else
+		{
+			BfWriteByte(hMessage, 0);
+			BfWriteByte(hMessage, true);
+			BfWriteString(hMessage, buffer);
+		}
+
+		EndMessage();
+	}
+}
+
+
+stock void ReplaceMessage(char[] message, int maxlength){
 	if(GetGameType() == GameType_CSS){
 		ReplaceString(message, maxlength, "{stop}", "\x0A", false);
+		ReplaceString(message, maxlength, "^a", "\x0A", false);
 		ReplaceString(message, maxlength, "{team}", "\x03", false);
 		ReplaceString(message, maxlength, "^", "\x07", false);
 	}else if(GetGameType() == GameType_CSGO){
@@ -197,7 +176,7 @@ stock ReplaceMessage(String:message[], maxlength){
 		ReplaceString(message, maxlength, "^f", "\x0f", false);
 	}
 }
-stock UnformatMessage(String:message[], maxlength){
+stock void UnformatMessage(char[] message, int maxlength){
 	ReplaceString(message, maxlength, "^a", "", false);
 	ReplaceString(message, maxlength, "{team}", "", false);
 	ReplaceString(message, maxlength, "^z", "");
@@ -215,64 +194,43 @@ stock UnformatMessage(String:message[], maxlength){
 	ReplaceString(message, maxlength, "^c", "", false);
 	ReplaceString(message, maxlength, "^e", "", false);
 	ReplaceString(message, maxlength, "^f", "", false);
-	if(GetGameType() == GameType_CSS)
-		ReplaceString(message, maxlength, "^", "", false);
+	ReplaceString(message, maxlength, "^", "", false);
 }
 
 
-stock ShowMOTDNotify(client, char[] motdTitle, char[] motdURL, motdType, bool ShouldAddGame = true){
+stock void ShowMOTDNotify(int client, char[] motdTitle, char[] motdURL, int motdType, bool ShouldAddGame = true){
 	char newURL[1024];
 	char finalURL[1024];
+
+	FormatEx(newURL, sizeof(newURL), "%s", motdURL);
 
 	if(GetGameType() == GameType_CSGO){
 		if(ShouldAddGame)
 			FormatEx(newURL, sizeof(newURL), "%s&game=csgo", motdURL);
-		else
-			FormatEx(newURL, sizeof(newURL), "%s", motdURL);
 
 		FormatEx(finalURL, sizeof(finalURL), "http://strafeodyssey.com/csgo.php?%s", newURL);
 	}else if(GetGameType() == GameType_CSS){
 		if(ShouldAddGame)
 			FormatEx(newURL, sizeof(newURL), "%s&game=css", motdURL);
-		else
-			FormatEx(newURL, sizeof(newURL), "%s", motdURL);
 
 		FormatEx(finalURL, sizeof(finalURL), "%s", newURL);
 	}
 
-	PrintToConsole(client, "\n[Timer] Page URL: %s\n", newURL);
-
 	ShowMOTDPanel(client, motdTitle, finalURL, motdType);
+	PrintToConsole(client, "\n[Server-Sys] MOTD Page URL: %s\n", newURL);
 }
 
-stock int GetGameType(){
-	if(g__timer_Engine_Checked == false){
+stock SupportedGames GetGameType(){
+	if(!s__b_Engine_Checked){
 		EngineVersion engVersion = GetEngineVersion();
 
 		if(engVersion == Engine_CSGO)
-			g__timer_Engine = GameType_CSGO;
-		else if(engVersion == Engine_CSS)
-			g__timer_Engine = GameType_CSS;
+			s__i_Engine = GameType_CSGO;
 
-		g__timer_Engine_Checked = true;
+		if(engVersion == Engine_CSS)
+			s__i_Engine = GameType_CSS;
+
+		s__b_Engine_Checked = true;
 	}
-	return g__timer_Engine;
-}
-
-stock void PrintHintGameText(client, const char[] format, any:...){
-	decl String:buffer[1024];
-	VFormat(buffer, sizeof(buffer), format, 3);
-	if(GetGameType() == GameType_CSGO)
-		PrintHintText(client, "<font size='16'>%s</font size>", buffer);
-	else
-		PrintHintText(client, buffer);
-}
-
-stock PrintHintGameTextAll(const char[] format, any:...){
-	decl String:buffer[1024];
-	VFormat(buffer, sizeof(buffer), format, 2);
-	if(GetGameType() == GameType_CSGO)
-		PrintHintTextToAll("<font size='16'>%s</font size>", buffer);
-	else
-		PrintHintTextToAll(buffer);
+	return view_as<SupportedGames>s__i_Engine;
 }

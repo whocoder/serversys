@@ -1,3 +1,8 @@
+#if defined _serversys_core_included
+  #endinput
+#endif
+#define _serversys_core_included
+
 /**
 * Reloads the core plugin's config file.
 *
@@ -13,8 +18,19 @@ native void Sys_ReloadConfiguration(bool map = true);
 */
 native bool Sys_IsHideEnabled(int client);
 
+/**
+* Checks if the core plugin has Map-Configs enabled.
+*
+* @return               True if enabled, false otherwise.
+*/
+native bool Sys_UseMapConfigs();
 
-
+/**
+* Checks if the core plugin has Map-Configs enabled.
+*
+* @return               True if enabled, false otherwise.
+*/
+native bool Sys_InMap();
 
 
 public SharedPlugin __pl_serversys_core =
