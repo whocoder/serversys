@@ -8,13 +8,13 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-public Plugin serversys = {
+public Plugin myinfo = {
 	name = "[Server-Sys] Core",
 	description = "Server-Sys - simple, yet advanced server management.",
 	author = "cam",
 	version = SERVERSYS_VERSION,
 	url = SERVERSYS_URL
-};
+}
 
 enum {
 	NOBLOCK_TYPE_COLLISIONGROUP = 0,
@@ -38,6 +38,7 @@ enum {
 bool 	g_Settings_bUseDatabase;
 char 	g_Settings_cDatabaseName[32];
 int		g_Settings_iServerID;
+char	g_Settings_cServerName[64];
 
 
 /**
@@ -97,6 +98,8 @@ int		g_iSafeConnectCount = 1;
 * Forward Handles
 */
 Handle	g_hF_Sys_OnDatabaseLoaded;
+Handle	g_hF_Sys_OnServerIDLoaded;
+Handle 	g_hF_Sys_OnPlayerIDLoaded;
 
 /**
 * Server functionality variables
@@ -104,8 +107,13 @@ Handle	g_hF_Sys_OnDatabaseLoaded;
 
 bool 	g_bLateLoad = false;
 bool 	g_bInMap = false;
+bool	g_bInRound = false;
 
+bool	g_bPlayerIDLoaded[MAXPLAYERS + 1];
+int		g_iPlayerID[MAXPLAYERS + 1];
 
+float g_fMapStartTime;
+float g_fPlayerJoinTime[MAXPLAYERS + 1];
 
 
 public void OnPluginStart(){
@@ -115,6 +123,13 @@ public void OnPluginStart(){
 	HookEvent("round_start", Event_RoundStart, EventHookMode_Post);
 	HookEvent("round_end", Event_RoundEnd, EventHookMode_Post);
 	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
+}
+
+public void OnPluginEnd(){
+	UnhookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
+	UnhookEvent("round_start", Event_RoundStart, EventHookMode_Post);
+	UnhookEvent("round_end", Event_RoundEnd, EventHookMode_Post);
+	UnhookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
 }
 
 /**
@@ -146,6 +161,15 @@ public void OnAllPluginsLoaded(){
 	}
 }
 
+public void OnDatabaseLoaded(bool success){
+	g_SysDB_bConnected = success;
+
+	if(!g_SysDB_bConnected)
+		return;
+
+	Sys_DB_RegisterServer();
+}
+
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	RegPluginLibrary("serversys");
@@ -154,9 +178,17 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Sys_IsHideEnabled", Native_IsHideEnabled);
 	CreateNative("Sys_ReloadConfiguration", Native_ReloadConfiguration);
 	CreateNative("Sys_InMap", Native_InMap);
-	CreateNative("Sys_DB_Enable", Native_DB_Enable);
+	CreateNative("Sys_InRound", Native_InMap);
+	CreateNative("Sys_GetPlayerID", Native_GetPlayerID);
+	CreateNative("Sys_UseDatabase", Native_DB_UseDatabase);
+
+	CreateNative("Sys_DB_Connected", Native_DB_Connected);
 	CreateNative("Sys_DB_TQuery", Native_DB_TQuery);
 	CreateNative("Sys_DB_EscapeString", Native_DB_EscapeString);
+
+	g_hF_Sys_OnDatabaseLoaded = CreateGlobalForward("OnDatabaseLoaded", ET_Event, Param_Cell);
+	g_hF_Sys_OnServerIDLoaded = CreateGlobalForward("OnServerIDLoaded", ET_Event, Param_Cell);
+	g_hF_Sys_OnPlayerIDLoaded = CreateGlobalForward("OnPlayerIDLoaded", ET_Event, Param_Cell, Param_Cell);
 
 	g_bLateLoad = late;
 
@@ -167,7 +199,7 @@ void LoadConfig(char[] map_name = ""){
 	Handle kv = CreateKeyValues("Server-Sys");
 	char Config_Path[PLATFORM_MAX_PATH];
 
-	if(g_bInMap && (strlen(map_name) > 3) && g_Settings_bMapConfig == true){
+	if(Sys_InMap() && (strlen(map_name) > 3) && g_Settings_bMapConfig == true){
 		BuildPath(Path_SM, Config_Path, sizeof(Config_Path), "configs/serversys/maps/%s/core.cfg", g_cMapName);
 
 		if(!(FileExists(Config_Path)) || !(FileToKeyValues(kv, Config_Path)))
@@ -190,7 +222,9 @@ void LoadConfig(char[] map_name = ""){
 
 		g_Settings_iServerID = KvGetNum(kv, "server_id", -1);
 
-		if(g_Settings_iServerID == -1){
+		KvGetString(kv, "server_name", g_Settings_cServerName, sizeof(g_Settings_cServerName), "none");
+
+		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none")){
 			g_Settings_bUseDatabase = false;
 			LogError("[serversys] core :: Invalid Server ID supplied.");
 		}
@@ -255,11 +289,11 @@ public void OnClientPutInServer(int client){
 	SDKHook(client, SDKHook_SetTransmit, Hook_SetTransmit);
 }
 
-public void OnClientAuthorized(int client, const char[] auth){
-
+public void OnClientAuthorized(int client, const char[] sauth){
+	Sys_DB_RegisterPlayer(client);
 }
 
-public void Sys_DB_Connect(char[] database){
+void Sys_DB_Connect(char[] database){
 	Sys_KillHandle(g_SysDB);
 
 	if(StrEqual(database, "", false) || (strlen(database) < 3))
@@ -297,11 +331,113 @@ public void Sys_DB_Connect_CB(Handle owner, Handle hndl, const char[] error, any
 	g_SysDB = CloneHandle(hndl);
 	Sys_KillHandle(hndl);
 
+	g_SysDB_bConnected = true;
+
 	Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
 	Call_PushCell(true);
 	Call_Finish();
 
 	g_iSafeConnectCount = 1;
+}
+
+void Sys_DB_RegisterServer(){
+	//g_Settings_iServerID;
+	int size = (2*64+1);
+	char[] safename = new char[size];
+
+	Sys_DB_EscapeString(g_Settings_cServerName, safename);
+
+	char query[255];
+	Format(query, sizeof(query), "INSERT INTO servers (id, name) VALUES (%d, '%s') ON DUPLICATE KEY UPDATE id = %d, name = '%s';",
+		g_Settings_iServerID,
+		safename,
+		g_Settings_iServerID,
+		safename);
+
+	Sys_DB_TQuery(Sys_DB_RegisterServer_CB, query, _, DBPrio_High);
+}
+
+public void Sys_DB_RegisterServer_CB(Handle owner, Handle hndl, const char[] error, any data){
+	if(hndl == INVALID_HANDLE){
+		LogError("[serversys] core :: Error on registering server: %s", error);
+		return;
+	}
+
+	Call_StartForward(g_hF_Sys_OnServerIDLoaded);
+	Call_PushCell(g_Settings_iServerID);
+	Call_Finish();
+}
+
+/*
+char name[MAX_NAME_LENGTH];
+GetClientName()
+int size = (2*MAX_NAME_LENGTH+1);
+char[] safename = new char[size];
+
+SQL_EscapeString()
+
+char query[255];
+Format(query, sizeof(query), "INSERT INTO users (auth, name) VALUES (%d, '%s') ON DUPLICATE KEY UPDATE name = '%s';");
+
+Sys_DB_TQuery();
+*/
+void Sys_DB_RegisterPlayer(int client){
+	int auth = GetSteamAccountID(client);
+	char name[MAX_NAME_LENGTH];
+	GetClientName(client, name, sizeof(name));
+
+	int size = (2*MAX_NAME_LENGTH+1);
+	char[] safename = new char[size];
+
+	Sys_DB_EscapeString(name, safename);
+
+	char query[255];
+	Format(query, sizeof(query), "INSERT INTO users (auth, name) VALUES (%d, '%s') ON DUPLICATE KEY UPDATE name = '%s';", auth, safename, safename);
+
+	Sys_DB_TQuery(Sys_DB_RegisterPlayer_CB, query, GetClientUserId(client), DBPrio_High);
+}
+
+public void Sys_DB_RegisterPlayer_CB(Handle owner, Handle hndl, const char[] error, any data){
+	int client = GetClientOfUserId(data);
+
+	if(client == 0 || (!IsClientInGame(client)))
+		return;
+
+	if(hndl == INVALID_HANDLE){
+		LogError("[serversys] core :: Error loading data for player (%N): %s", client, error);
+		return;
+	}
+
+	int auth = GetSteamAccountID(client);
+
+	char query[255];
+	Format(query, sizeof(query), "SELECT pid FROM users WHERE auth = %d", auth);
+
+	Sys_DB_TQuery(Sys_DB_RegisterPlayer_CB_CB, query, GetClientUserId(client), DBPrio_High);
+}
+
+public void Sys_DB_RegisterPlayer_CB_CB(Handle owner, Handle hndl, const char[] error, any data){
+	int client = GetClientOfUserId(data);
+
+	if(client == 0 || !(IsClientInGame(client)) || !(IsClientConnected(client)))
+		return;
+
+	if(hndl == INVALID_HANDLE){
+		LogError("[serversys] core :: Error loading ID for player (%N): %s", client, error);
+		return;
+	}
+
+	SQL_FetchRow(hndl);
+
+	int playerid = SQL_FetchInt(hndl, 0);
+
+	g_iPlayerID[client] = playerid;
+	g_bPlayerIDLoaded[client] = true;
+
+	Call_StartForward(g_hF_Sys_OnPlayerIDLoaded);
+	Call_PushCell(client);
+	Call_PushCell(playerid);
+	Call_Finish();
 }
 
 public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBroadcast){
@@ -392,6 +528,7 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool PreventBro
 }
 
 public Action Event_RoundStart(Handle event, const char[] name, bool PreventBroadcast){
+	g_bInRound = true;
 	/*
 	*	Give all player's spawn protection flag if method == 1
 	*	This is so that if they die, they will be respawned.
@@ -408,7 +545,8 @@ public Action Event_RoundStart(Handle event, const char[] name, bool PreventBroa
 	}
 }
 
-public Action Event_RoundEnd(Handle event, const char[] name, bool PreventBroadcast){\
+public Action Event_RoundEnd(Handle event, const char[] name, bool PreventBroadcast){
+	g_bInMap = false;
 	/*
 	*	Reset everyone's spawn protection status to false,
 	*	so that they don't respawn during the next round.
@@ -449,7 +587,9 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 
 public void OnMapStart(){
 	g_bInMap = true;
+	g_fMapStartTime = GetEngineTime();
 	GetCurrentMap(g_cMapName, sizeof(g_cMapName));
+
 	if(g_Settings_bMapConfig){
 		CreateTimer(0.5, OnMapStart_Timer_LoadConfig);
 	}
@@ -490,6 +630,13 @@ public int Native_ReloadConfiguration(Handle plugin, int numParams){
 
 public int Native_UseMapConfigs(Handle plugin, int numParams){
 	return g_Settings_bMapConfig;
+}
+
+public int Native_InRound(Handle plugin, int numParams){
+	if(!Sys_InMap())
+		return false;
+
+	return g_bInRound;
 }
 
 public int Native_InMap(Handle plugin, int numParams){
@@ -552,6 +699,26 @@ public int Native_DB_EscapeString(Handle plugin, int numParams){
 	SQL_EscapeString(g_SysDB, originalChar, safeChar, newSize, written);
 }
 
-public int Native_DB_Enable(Handle plugin, int numParams){
+public int Native_DB_UseDatabase(Handle plugin, int numParams){
 	return g_Settings_bUseDatabase;
+}
+
+public int Native_DB_Connected(Handle plugin, int numParams){
+	if(!Sys_UseDatabase())
+		return false;
+
+	return g_SysDB_bConnected;
+}
+
+public int Native_GetPlayerID(Handle plugin, int numParams){
+	if(!Sys_DB_Connected())
+		return -1;
+
+	int client = GetNativeCell(1);
+
+	if(IsClientConnected(client) && IsClientAuthorized(client) && g_bPlayerIDLoaded[client]){
+		return g_iPlayerID[client];
+	}
+
+	return -1;
 }

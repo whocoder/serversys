@@ -13,6 +13,27 @@
 forward void OnDatabaseLoaded(bool success);
 
 /**
+* Called when Server-Sys has loaded and queried
+* the database with the ServerID. This will only be
+* called if databases are enabled (check the 'success'
+* param from OnDatabaseLoaded to determine if it will)
+*
+* @param serverID		This value will be the verified (after MySQL)
+*                       ServerID.
+*/
+forward void OnServerIDLoaded(int serverID);
+
+/**
+* Called after OnClientAuthorized, once the users'
+* PlayerID is loaded. There might be a small delay.
+*
+* @param client         Client index
+* @param playerID		This value will be the verified (after MySQL)
+*                       ServerID.
+*/
+forward void OnPlayerIDLoaded(int client, int playerID);
+
+/**
 * Reloads the core plugin's config file.
 *
 * @param map          Whether to load the maps config (if exists)
@@ -21,18 +42,18 @@ forward void OnDatabaseLoaded(bool success);
 native void Sys_ReloadConfiguration(bool map = true);
 
 /**
-* Checks if hide is enabled for a player.
-*
-* @param client         Client to check.
-*/
-native bool Sys_IsHideEnabled(int client);
-
-/**
 * Checks if the core plugin has Map-Configs enabled.
 *
 * @return               True if enabled, false otherwise.
 */
 native bool Sys_UseMapConfigs();
+
+/**
+* Checks if Server-Sys has databases setup in configuration.
+*
+* @return               True if in enabled, false otherwise
+*/
+native bool Sys_UseDatabase();
 
 /**
 * Checks if we are currently in between OnMapStart and
@@ -44,15 +65,44 @@ native bool Sys_UseMapConfigs();
 native bool Sys_InMap();
 
 /**
-* Checks if Server-Sys has databases setup in configuration.
+* Checks if we are currently in between events round_start and
+* round_end. Useful to check whether or not rounds will end.
 *
-* @return               True if in enabled, false otherwise
+* @return               True if in between, false otherwise
+*                       Will also return false if Sys_InMap() is false.
 */
-native bool Sys_DB_Enable();
+native bool Sys_InRound();
 
 /**
-* Checks if the core plugin has Databases enabled
+* Checks if hide is enabled for a player.
+*
+* @param client         Client to check.
 */
+native bool Sys_IsHideEnabled(int client);
+
+/**
+* Gets a PlayerID using client index
+*
+* @param client         Client to check.
+* @return               PlayerID or -1 on failure
+*/
+native int Sys_GetPlayerID(int client);
+
+/**
+* Gets a PlayerID using auth (GetSteamAccountID)
+*
+* @param auth         Client to check.
+* @return               PlayerID or -1 on failure
+*/
+//native int Sys_GetPlayerIDFromAuth(int auth);
+
+/**
+* Check if the DB is connected.
+*
+* @return               True or false. Will also return
+*                       false is Sys_UseDatabase() is false.
+*/
+native bool Sys_DB_Connected();
 
 /**
 * Queries the main Server-Sys database and returns like normal SQL_TQuery.
@@ -92,11 +142,19 @@ public SharedPlugin __pl_serversys_core =
 
 #if defined REQUIRE_PLUGIN
 public __pl_serversys_core_SetNTVOptional(){
-    MarkNativeAsOptional("Sys_IsHideEnabled");
     MarkNativeAsOptional("Sys_ReloadConfiguration");
+
+    MarkNativeAsOptional("Sys_IsHideEnabled");
+
     MarkNativeAsOptional("Sys_UseMapConfigs");
+    MarkNativeAsOptional("Sys_UseDatabase");
+
     MarkNativeAsOptional("Sys_InMap");
-    MarkNativeAsOptional("Sys_DB_Enable");
+    MarkNativeAsOptional("Sys_InRound");
+
+    MarkNativeAsOptional("Sys_GetPlayerID");
+    //MarkNativeAsOptional("Sys_GetPlayerIDFromAuth");
+
     MarkNativeAsOptional("Sys_DB_TQuery");
     MarkNativeAsOptional("Sys_DB_EscapeString");
 }

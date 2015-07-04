@@ -17,8 +17,13 @@ SourceMod Server-Sys is a simple, yet advanced server configuration system. For 
 
 ## Intended Features
 * [x] Map configuration integration
-* [ ] Database with Server ID registration (will probably be a key in core.cfg)
-* [ ] Play-time tracker (Server ID specific + Total overall)
+* [x] Database support with server/player tracking
+* [x] Server-ID and Player-ID registration
+* [ ] Custom game-mode helpful features (Surf, Minigames, etc)
+* [ ] Play-time and stats tracking
+
+
+If you have any ideas for new features, please let me know!
 
 ## Contribute!
 I am always open to merge any changes that are for the good. Please feel free to contribute.
