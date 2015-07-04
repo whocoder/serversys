@@ -8,13 +8,13 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-public Plugin ServerSys = {
+public Plugin serversys = {
 	name = "[Server-Sys] Core",
 	description = "Server-Sys - simple, yet advanced server management.",
 	author = "cam",
 	version = SERVERSYS_VERSION,
 	url = SERVERSYS_URL
-}
+};
 
 enum {
 	NOBLOCK_TYPE_COLLISIONGROUP = 0,
