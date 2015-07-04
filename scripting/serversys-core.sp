@@ -32,61 +32,116 @@ enum {
 }
 
 
+/**
+* Database settings
+*/
+bool 	g_Settings_bUseDatabase;
+char 	g_Settings_cDatabaseName[32];
+int		g_Settings_iServerID;
 
-//int 	g_iOffset_CollisionGroup;
+
+/**
+* Database variables
+*/
+bool 	g_SysDB_bConnected;
+Handle 	g_SysDB;
+
+float	g_fPlayTime[MAXPLAYERS+1];
 
 /**
 * MapConfig settings
 */
-bool g_Settings_bMapConfig;
+bool 	g_Settings_bMapConfig;
+
+/**
+* MapConfig variables
+*/
+char	g_cMapName[64];
 
 /**
 * NoBlock settings
 */
-bool g_Settings_bNoBlock;
-int g_Settings_iNoBlockMethod;
+bool 	g_Settings_bNoBlock;
+int 	g_Settings_iNoBlockMethod;
 
 /**
 * Hide settings
 */
-bool g_Settings_bHide;
-bool g_Settings_bHideDead;
-bool g_Settings_bHideNoClip;
-int g_Settings_iHideMethod;
+bool 	g_Settings_bHide;
+bool 	g_Settings_bHideDead;
+bool 	g_Settings_bHideNoClip;
+int 	g_Settings_iHideMethod;
+
+/**
+* Hide variables
+*/
+bool	g_bHideEnabled[MAXPLAYERS+1] = {false, ...};
 
 /**
 * Spawn protection settings
 */
 bool	g_Settings_bSpawnProtection;
 float	g_Settings_fSpawnProtection_Length;
-int g_Settings_iSpawnProtection_Method;
+int 	g_Settings_iSpawnProtection_Method;
+
+/**
+* Spawn protection variables
+*/
+bool 	g_bSpawnProtectionGlobal = false;
+bool 	g_bSpawnProtection[MAXPLAYERS+1] = {false, ...};
+int		g_iSafeConnectCount = 1;
+
+
+
+/**
+* Forward Handles
+*/
+Handle	g_hF_Sys_OnDatabaseLoaded;
 
 /**
 * Server functionality variables
 */
-bool 	g_bSpawnProtectionGlobal = false;
-bool 	g_bSpawnProtection[MAXPLAYERS+1] = {false, ...};
-bool	g_bHideEnabled[MAXPLAYERS+1] = {false, ...};
-
-char	g_cMapName[64];
 
 bool 	g_bLateLoad = false;
 bool 	g_bInMap = false;
 
+
+
+
 public void OnPluginStart(){
 	LoadConfig();
-
-	//g_iOffset_CollisionGroup 	= FindSendPropOffs("CBaseEntity", "m_CollisionGroup");
 
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 	HookEvent("round_start", Event_RoundStart, EventHookMode_Post);
 	HookEvent("round_end", Event_RoundEnd, EventHookMode_Post);
 	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
+}
+
+/**
+* OnAllPluginsLoaded is called once per every plugin,
+* once all plugins have been initially loaded.
+* If a plugin is late-loaded, it will be called immediately
+* after OnPluginStart
+*/
+public void OnAllPluginsLoaded(){
+	if(g_Settings_bUseDatabase){
+		Sys_DB_Connect(g_Settings_cDatabaseName);
+	}
+	else
+	{
+		Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
+		Call_PushCell(false);
+		Call_Finish();
+	}
 
 	if(g_bLateLoad){
 		for(int i = 1; i <= MaxClients; i++){
-			if(IsClientConnected(i))
+			if(IsClientConnected(i)){
 				OnClientPutInServer(i);
+
+				if(IsClientAuthorized(i))
+					OnClientAuthorized(i, "");
+			}
 		}
 	}
 }
@@ -96,12 +151,12 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	RegPluginLibrary("serversys");
 
 	CreateNative("Sys_UseMapConfigs", Native_UseMapConfigs);
-
 	CreateNative("Sys_IsHideEnabled", Native_IsHideEnabled);
-
 	CreateNative("Sys_ReloadConfiguration", Native_ReloadConfiguration);
-
 	CreateNative("Sys_InMap", Native_InMap);
+	CreateNative("Sys_DB_Enable", Native_DB_Enable);
+	CreateNative("Sys_DB_TQuery", Native_DB_TQuery);
+	CreateNative("Sys_DB_EscapeString", Native_DB_EscapeString);
 
 	g_bLateLoad = late;
 
@@ -128,9 +183,26 @@ void LoadConfig(char[] map_name = ""){
 		SetFailState("[serversys] core :: Cannot read from configuration file: %s", Config_Path);
     }
 
+	if(KvJumpToKey(kv, "database")){
+		g_Settings_bUseDatabase = view_as<bool>KvGetNum(kv, "enabled", 0);
+
+		KvGetString(kv, "name", g_Settings_cDatabaseName, sizeof(g_Settings_cDatabaseName), "serversys");
+
+		g_Settings_iServerID = KvGetNum(kv, "server_id", -1);
+
+		if(g_Settings_iServerID == -1){
+			g_Settings_bUseDatabase = false;
+			LogError("[serversys] core :: Invalid Server ID supplied.");
+		}
+
+		KvGoBack(kv);
+	}
+	else
+		g_Settings_bUseDatabase = false;
+
 	if(KvJumpToKey(kv, "mapconfigs")){
 		g_Settings_bMapConfig = view_as<bool>KvGetNum(kv, "enabled", 1);
-		
+
 		KvGoBack(kv);
 	}
 	else
@@ -181,6 +253,55 @@ public void OnClientPutInServer(int client){
 
 	SDKHook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
 	SDKHook(client, SDKHook_SetTransmit, Hook_SetTransmit);
+}
+
+public void OnClientAuthorized(int client, const char[] auth){
+
+}
+
+public void Sys_DB_Connect(char[] database){
+	Sys_KillHandle(g_SysDB);
+
+	if(StrEqual(database, "", false) || (strlen(database) < 3))
+		strcopy(database, 32, g_Settings_cDatabaseName);
+
+	if(SQL_CheckConfig(database)){
+		SQL_TConnect(Sys_DB_Connect_CB, database);
+	}
+	else
+	{
+		g_Settings_bUseDatabase = false;
+		Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
+		Call_PushCell(false);
+		Call_Finish();
+	}
+}
+
+public void Sys_DB_Connect_CB(Handle owner, Handle hndl, const char[] error, any data){
+	if(g_iSafeConnectCount >= 5){
+		SetFailState("[serversys] core :: Reached connection count without success. Plugin stopped.");
+
+		return;
+	}
+
+	if(hndl == INVALID_HANDLE){
+		LogError("[serversys] core :: Database connection failed on attempt #%i: %s", g_iSafeConnectCount, error);
+
+		g_iSafeConnectCount++;
+
+		Sys_DB_Connect(g_Settings_cDatabaseName);
+
+		return;
+	}
+
+	g_SysDB = CloneHandle(hndl);
+	Sys_KillHandle(hndl);
+
+	Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
+	Call_PushCell(true);
+	Call_Finish();
+
+	g_iSafeConnectCount = 1;
 }
 
 public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBroadcast){
@@ -298,19 +419,17 @@ public Action Event_RoundEnd(Handle event, const char[] name, bool PreventBroadc
 }
 
 public Action Timer_SpawnProtection(Handle timer, any clientID){
+	int client = GetClientOfUserId(clientID);
 	if(g_Settings_bSpawnProtection){
 		switch(g_Settings_iSpawnProtection_Method){
 			case SPAWNPROTECT_GODMODE:{
-				if(clientID != 0){
-					int client = GetClientOfUserId(clientID);
-					if((0 < client <= MaxClients) && IsClientInGame(client) && IsPlayerAlive(client)){
-						g_bSpawnProtection[client] = false;
-						PrintTextChat(client, "Your spawn protection has expired.");
-					}
+				if((0 < client <= MaxClients) && IsClientInGame(client) && IsPlayerAlive(client) && g_bSpawnProtection[client]){
+					g_bSpawnProtection[client] = false;
+					PrintTextChat(client, "Your spawn protection has expired.");
 				}
 			}
 			case SPAWNPROTECT_RESPAWN:{
-				if(clientID == 0 && g_bSpawnProtectionGlobal){
+				if(g_bSpawnProtectionGlobal){
 					for(int i = 1; i <= MaxClients; i++){
 						if(IsClientConnected(i) && IsClientInGame(i) && !(IsPlayerAlive(i))){
 							switch(GetClientTeam(i)){
@@ -375,4 +494,64 @@ public int Native_UseMapConfigs(Handle plugin, int numParams){
 
 public int Native_InMap(Handle plugin, int numParams){
 	return g_bInMap;
+}
+
+public int Native_DB_TQuery(Handle plugin, int numParams){
+	if(g_Settings_bUseDatabase && g_SysDB_bConnected){
+		SQLTCallback callback = view_as<SQLTCallback>GetNativeFunction(1);
+
+		int size;
+		GetNativeStringLength(2, size);
+
+		char[] sQuery = new char[size];
+		GetNativeString(2, sQuery, size);
+
+		any data = GetNativeCell(3);
+		DBPriority prio = GetNativeCell(4);
+
+		Handle hPack = CreateDataPack();
+		WritePackCell(hPack, plugin);
+		WritePackFunction(hPack, callback);
+		WritePackCell(hPack, data);
+
+		SQL_TQuery(g_SysDB, Native_DB_TQuery_Callback, sQuery, hPack, prio);
+	}
+}
+
+public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] error, any data)
+{
+	ResetPack(data);
+
+	Handle plugin = view_as<Handle>ReadPackCell(data);
+	SQLTCallback callback = view_as<SQLTCallback>ReadPackFunction(data);
+	any hPack = ReadPackCell(data);
+
+	Sys_KillHandle(data);
+
+	Call_StartFunction(plugin, callback);
+	Call_PushCell(owner);
+	Call_PushCell(hndl);
+	Call_PushString(error);
+	Call_PushCell(hPack);
+	Call_Finish();
+}
+
+public int Native_DB_EscapeString(Handle plugin, int numParams){
+	int originalSize;
+	GetNativeStringLength(1, originalSize);
+	char[] originalChar = new char[originalSize];
+	GetNativeString(1, originalChar, originalSize);
+
+	int newSize;
+	GetNativeStringLength(2, newSize);
+	char[] safeChar = new char[newSize];
+	GetNativeString(2, safeChar, newSize);
+
+	int written = GetNativeCell(3);
+
+	SQL_EscapeString(g_SysDB, originalChar, safeChar, newSize, written);
+}
+
+public int Native_DB_Enable(Handle plugin, int numParams){
+	return g_Settings_bUseDatabase;
 }

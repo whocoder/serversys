@@ -4,6 +4,15 @@
 #define _serversys_core_included
 
 /**
+* Called when the Server-Sys database is loaded.
+*
+* @param success		This value will be false if databases are disabled
+*						for Server-Sys, or if the configuration key did not
+*						exist in databases.cfg
+*/
+forward void OnDatabaseLoaded(bool success);
+
+/**
 * Reloads the core plugin's config file.
 *
 * @param map          Whether to load the maps config (if exists)
@@ -26,11 +35,48 @@ native bool Sys_IsHideEnabled(int client);
 native bool Sys_UseMapConfigs();
 
 /**
-* Checks if the core plugin has Map-Configs enabled.
+* Checks if we are currently in between OnMapStart and
+* OnMapEnd. Useful to check if things like the map's name
+* and any other map-specific things are usable.
 *
-* @return               True if enabled, false otherwise.
+* @return               True if in between, false otherwise
 */
 native bool Sys_InMap();
+
+/**
+* Checks if Server-Sys has databases setup in configuration.
+*
+* @return               True if in enabled, false otherwise
+*/
+native bool Sys_DB_Enable();
+
+/**
+* Checks if the core plugin has Databases enabled
+*/
+
+/**
+* Queries the main Server-Sys database and returns like normal SQL_TQuery.
+* This function was made possible by the open source SourceMod Store.
+* http://github.com/Drixevel/store
+*
+* @param callback		Callback to send results to.
+* @param query			Query to execute.
+* @param data			Data to pass through callback.
+* @param prio			Database priority to give.
+*/
+native void Sys_DB_TQuery(SQLTCallback callback, const char[] query, any data = 0, DBPriority prio = DBPrio_Normal);
+
+/**
+* Escapes a string like normal SQL_EscapeString.
+* Your safebuffer's size MUST be EXACTLY:
+* 2*(sizeof(original))+1
+*
+* @param original       The original char to escape
+* @param safebuffer     The buffer to store the escaped char into
+* @param byteswritten   Optional int to store amount of bytes written
+*/
+native void Sys_DB_EscapeString(char[] original, char[] safebuffer, int &byteswritten = 0);
+
 
 
 public SharedPlugin __pl_serversys_core =
@@ -50,5 +96,8 @@ public __pl_serversys_core_SetNTVOptional(){
     MarkNativeAsOptional("Sys_ReloadConfiguration");
     MarkNativeAsOptional("Sys_UseMapConfigs");
     MarkNativeAsOptional("Sys_InMap");
+    MarkNativeAsOptional("Sys_DB_Enable");
+    MarkNativeAsOptional("Sys_DB_TQuery");
+    MarkNativeAsOptional("Sys_DB_EscapeString");
 }
 #endif

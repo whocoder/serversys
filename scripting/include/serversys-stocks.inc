@@ -11,6 +11,18 @@ enum SupportedGames {
 };
 
 /**
+* Used to cleanly close handles
+*
+* @param hndl			Handle to close
+*/
+stock void Sys_KillHandle(Handle hndl){
+	if(hndl != INVALID_HANDLE){
+		CloseHandle(hndl);
+		hndl = INVALID_HANDLE;
+	}
+}
+
+/**
 * Used to print console messages to all players
 *
 * @param format			String to print
