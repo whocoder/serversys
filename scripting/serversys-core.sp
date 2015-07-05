@@ -348,7 +348,7 @@ void Sys_DB_RegisterServer(){
 	Sys_DB_EscapeString(g_Settings_cServerName, safename);
 
 	char query[255];
-	Format(query, sizeof(query), "INSERT INTO servers (id, name) VALUES (%d, '%s') ON DUPLICATE KEY UPDATE id = %d, name = '%s';",
+	Format(query, sizeof(query), "INSERT INTO servers (id) VALUES (%d) ON DUPLICATE KEY UPDATE id = %d, name = '%s';",
 		g_Settings_iServerID,
 		safename,
 		g_Settings_iServerID,
@@ -392,7 +392,7 @@ void Sys_DB_RegisterPlayer(int client){
 	Sys_DB_EscapeString(name, safename);
 
 	char query[255];
-	Format(query, sizeof(query), "INSERT INTO users (auth, name) VALUES (%d, '%s') ON DUPLICATE KEY UPDATE name = '%s', lastseen = NOW();", auth, safename, safename);
+	Format(query, sizeof(query), "INSERT INTO users (auth) VALUES (%d) ON DUPLICATE KEY UPDATE name = '%s', lastseen = NOW();", auth, safename, safename);
 
 	Sys_DB_TQuery(Sys_DB_RegisterPlayer_CB, query, GetClientUserId(client), DBPrio_High);
 }
