@@ -392,7 +392,7 @@ void Sys_DB_RegisterPlayer(int client){
 	Sys_DB_EscapeString(name, safename);
 
 	char query[255];
-	Format(query, sizeof(query), "INSERT INTO users (auth, name) VALUES (%d, '%s') ON DUPLICATE KEY UPDATE name = '%s';", auth, safename, safename);
+	Format(query, sizeof(query), "INSERT INTO users (auth, name) VALUES (%d, '%s') ON DUPLICATE KEY UPDATE name = '%s', lastseen = NOW();", auth, safename, safename);
 
 	Sys_DB_TQuery(Sys_DB_RegisterPlayer_CB, query, GetClientUserId(client), DBPrio_High);
 }
@@ -411,7 +411,7 @@ public void Sys_DB_RegisterPlayer_CB(Handle owner, Handle hndl, const char[] err
 	int auth = GetSteamAccountID(client);
 
 	char query[255];
-	Format(query, sizeof(query), "SELECT pid FROM users WHERE auth = %d", auth);
+	Format(query, sizeof(query), "SELECT pid FROM users WHERE auth = %d;", auth);
 
 	Sys_DB_TQuery(Sys_DB_RegisterPlayer_CB_CB, query, GetClientUserId(client), DBPrio_High);
 }
