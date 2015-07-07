@@ -345,7 +345,7 @@ void Sys_DB_RegisterServer(){
 	int size = (2*64+1);
 	char[] safename = new char[size];
 
-	Sys_DB_EscapeString(g_Settings_cServerName, safename);
+	Sys_DB_EscapeString(g_Settings_cServerName, sizeof(g_Settings_cServerName), safename, sizeof(safename));
 
 	char query[255];
 	Format(query, sizeof(query), "INSERT INTO servers (id) VALUES (%d) ON DUPLICATE KEY UPDATE id = %d, name = '%s';",
@@ -376,7 +376,7 @@ void Sys_DB_RegisterPlayer(int client){
 	int size = (2*MAX_NAME_LENGTH+1);
 	char[] safename = new char[size];
 
-	Sys_DB_EscapeString(name, safename);
+	Sys_DB_EscapeString(name, sizeof(name), safename, sizeof(safename));
 
 	char query[255];
 	Format(query, sizeof(query), "SELECT id, name FROM users WHERE auth = '%d';", auth);
