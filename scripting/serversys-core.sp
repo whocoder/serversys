@@ -368,19 +368,6 @@ public void Sys_DB_RegisterServer_CB(Handle owner, Handle hndl, const char[] err
 	Call_Finish();
 }
 
-/*
-char name[MAX_NAME_LENGTH];
-GetClientName()
-int size = (2*MAX_NAME_LENGTH+1);
-char[] safename = new char[size];
-
-SQL_EscapeString()
-
-char query[255];
-Format(query, sizeof(query), "INSERT INTO users (auth, name) VALUES (%d, '%s') ON DUPLICATE KEY UPDATE name = '%s';");
-
-Sys_DB_TQuery();
-*/
 void Sys_DB_RegisterPlayer(int client){
 	int auth = GetSteamAccountID(client);
 	char name[MAX_NAME_LENGTH];
@@ -392,7 +379,7 @@ void Sys_DB_RegisterPlayer(int client){
 	Sys_DB_EscapeString(name, safename);
 
 	char query[255];
-	Format(query, sizeof(query), "INSERT INTO users (auth) VALUES (%d) ON DUPLICATE KEY UPDATE name = '%s', lastseen = NOW();", auth, safename, safename);
+	Format(query, sizeof(query), "SELECT id, name FROM users WHERE auth = '%d';", auth);
 
 	Sys_DB_TQuery(Sys_DB_RegisterPlayer_CB, query, GetClientUserId(client), DBPrio_High);
 }
@@ -410,34 +397,40 @@ public void Sys_DB_RegisterPlayer_CB(Handle owner, Handle hndl, const char[] err
 
 	int auth = GetSteamAccountID(client);
 
-	char query[255];
-	Format(query, sizeof(query), "SELECT pid FROM users WHERE auth = %d;", auth);
+	if(SQL_FetchRow(hndl)){
+		int playerid = SQL_FetchInt(hndl, 0);
 
-	Sys_DB_TQuery(Sys_DB_RegisterPlayer_CB_CB, query, GetClientUserId(client), DBPrio_High);
+		g_iPlayerID[client] = playerid;
+		g_bPlayerIDLoaded[client] = true;
+
+		Call_StartForward(g_hF_Sys_OnPlayerIDLoaded);
+		Call_PushCell(client);
+		Call_PushCell(playerid);
+		Call_Finish();
+	}
+	else
+	{
+		char query[255];
+		Format(query, sizeof(query), "INSERT INTO users (auth) VALUES (%d);", auth);
+
+		Sys_DB_TQuery(Sys_DB_RegisterPlayer_CB_CB, query, GetClientUserId(client), DBPrio_High);
+	}
 }
 
 public void Sys_DB_RegisterPlayer_CB_CB(Handle owner, Handle hndl, const char[] error, any data){
 	int client = GetClientOfUserId(data);
 
-	if(client == 0 || !(IsClientInGame(client)) || !(IsClientConnected(client)))
+	if(client == 0 || !(IsClientInGame(client)))
 		return;
 
 	if(hndl == INVALID_HANDLE){
 		LogError("[serversys] core :: Error loading ID for player (%N): %s", client, error);
 		return;
 	}
-
-	SQL_FetchRow(hndl);
-
-	int playerid = SQL_FetchInt(hndl, 0);
-
-	g_iPlayerID[client] = playerid;
-	g_bPlayerIDLoaded[client] = true;
-
-	Call_StartForward(g_hF_Sys_OnPlayerIDLoaded);
-	Call_PushCell(client);
-	Call_PushCell(playerid);
-	Call_Finish();
+	else
+	{
+		Sys_DB_RegisterPlayer(client);
+	}
 }
 
 public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBroadcast){
@@ -684,19 +677,17 @@ public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] er
 }
 
 public int Native_DB_EscapeString(Handle plugin, int numParams){
-	int originalSize;
-	GetNativeStringLength(1, originalSize);
-	char[] originalChar = new char[originalSize];
+	int originalSize = GetNativeCell(2);
+	char[] originalChar;
 	GetNativeString(1, originalChar, originalSize);
 
-	int newSize;
-	GetNativeStringLength(2, newSize);
-	char[] safeChar = new char[newSize];
-	GetNativeString(2, safeChar, newSize);
+	int safeSize = GetNativeCell(4);
+	char[] safeChar;
+	GetNativeString(3, safeChar, safeSize);
 
-	int written = GetNativeCell(3);
+	int written = GetNativeCell(5);
 
-	SQL_EscapeString(g_SysDB, originalChar, safeChar, newSize, written);
+	SQL_EscapeString(g_SysDB, originalChar, safeChar, safeSize, written);
 }
 
 public int Native_DB_UseDatabase(Handle plugin, int numParams){

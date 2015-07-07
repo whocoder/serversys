@@ -122,10 +122,12 @@ native void Sys_DB_TQuery(SQLTCallback callback, const char[] query, any data = 
 * 2*(sizeof(original))+1
 *
 * @param original       The original char to escape
+* @param maxlen         Max length of original buffer
 * @param safebuffer     The buffer to store the escaped char into
+* @param safemaxlen     Max length of the safe buffer
 * @param byteswritten   Optional int to store amount of bytes written
 */
-native void Sys_DB_EscapeString(char[] original, char[] safebuffer, int &byteswritten = 0);
+native void Sys_DB_EscapeString(char[] original, int maxlen, char[] safebuffer, int safemaxlen, int &byteswritten = 0);
 
 
 
