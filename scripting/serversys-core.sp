@@ -345,7 +345,7 @@ void Sys_DB_RegisterServer(){
 	int size = (2*64+1);
 	char[] safename = new char[size];
 
-	Sys_DB_EscapeString(g_Settings_cServerName, sizeof(g_Settings_cServerName), safename, sizeof(safename));
+	Sys_DB_EscapeString(g_Settings_cServerName, 64, safename, size);
 
 	char query[255];
 	Format(query, sizeof(query), "INSERT INTO servers (id) VALUES (%d) ON DUPLICATE KEY UPDATE id = %d, name = '%s';",
@@ -376,7 +376,7 @@ void Sys_DB_RegisterPlayer(int client){
 	int size = (2*MAX_NAME_LENGTH+1);
 	char[] safename = new char[size];
 
-	Sys_DB_EscapeString(name, sizeof(name), safename, sizeof(safename));
+	Sys_DB_EscapeString(name, MAX_NAME_LENGTH, safename, size);
 
 	char query[255];
 	Format(query, sizeof(query), "SELECT id, name FROM users WHERE auth = '%d';", auth);
@@ -678,11 +678,11 @@ public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] er
 
 public int Native_DB_EscapeString(Handle plugin, int numParams){
 	int originalSize = GetNativeCell(2);
-	char[] originalChar;
+	char[] originalChar = new char[originalSize];
 	GetNativeString(1, originalChar, originalSize);
 
 	int safeSize = GetNativeCell(4);
-	char[] safeChar;
+	char[] safeChar = new char[safeSize];
 	GetNativeString(3, safeChar, safeSize);
 
 	int written = GetNativeCell(5);
