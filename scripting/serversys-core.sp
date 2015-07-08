@@ -92,7 +92,12 @@ bool 	g_bSpawnProtectionGlobal = false;
 bool 	g_bSpawnProtection[MAXPLAYERS+1] = {false, ...};
 int		g_iSafeConnectCount = 1;
 
-
+/**
+* God-mode settings
+*/
+bool	g_Settings_bDamage_GM;
+bool	g_Settings_bDamage_GM_BetweenRound;
+bool	g_Settings_bDamage_HSOnly;
 
 /**
 * Forward Handles
@@ -277,6 +282,20 @@ void LoadConfig(char[] map_name = ""){
 	else
 		g_Settings_bSpawnProtection = false;
 
+	if(KvJumpToKey(kv, "damage")){
+		g_Settings_bDamage_GM 				= view_as<bool>KvGetNum(kv, "godmode", 0);
+		g_Settings_bDamage_GM_BetweenRound 	= view_as<bool>KvGetNum(kv, "godmode_no_round", 0);
+		g_Settings_bDamage_HSOnly 			= view_as<bool>KvGetNum(kv, "headshot_only");
+
+		KvGoBack(kv);
+	}
+	else
+	{
+		g_Settings_bDamage_GM = false;
+		g_Settings_bDamage_GM_BetweenRound = false;
+		g_Settings_bDamage_HSOnly = false;
+	}
+
 	CloseHandle(kv);
 }
 
@@ -286,6 +305,7 @@ public void OnClientPutInServer(int client){
 
 
 	SDKHook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
+	SDKHook(client, SDKHook_TraceAttack, Hook_TraceAttack);
 	SDKHook(client, SDKHook_SetTransmit, Hook_SetTransmit);
 }
 
@@ -348,7 +368,7 @@ void Sys_DB_RegisterServer(){
 	Sys_DB_EscapeString(g_Settings_cServerName, 64, safename, size);
 
 	char query[255];
-	Format(query, sizeof(query), "INSERT INTO servers (id) VALUES (%d) ON DUPLICATE KEY UPDATE id = %d, name = '%s';",
+	Format(query, sizeof(query), "INSERT INTO servers (id, name) VALUES (%d, '%s') ON DUPLICATE KEY UPDATE name = '%s';",
 		g_Settings_iServerID,
 		safename,
 		g_Settings_iServerID,
@@ -379,7 +399,7 @@ void Sys_DB_RegisterPlayer(int client){
 	Sys_DB_EscapeString(name, MAX_NAME_LENGTH, safename, size);
 
 	char query[255];
-	Format(query, sizeof(query), "SELECT id, name FROM users WHERE auth = '%d';", auth);
+	Format(query, sizeof(query), "SELECT id FROM users WHERE auth = '%d';", auth);
 
 	Sys_DB_TQuery(Sys_DB_RegisterPlayer_CB, query, GetClientUserId(client), DBPrio_High);
 }
@@ -492,13 +512,40 @@ public Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float
 	/*
 	*	Ignore all damage to spawn protected players when method == 0
 	*	This is so that players cannot die until spawn protection ends.
+	*
+	*	We also need to prevent damage if godmode is enabled.
 	*/
+
+	if(g_Settings_bDamage_GM)
+		return Plugin_Handled;
+
+	if((g_Settings_bDamage_GM_BetweenRound) && !(Sys_InRound()))
+		return Plugin_Handled;
 
 	int client = victim;
 
-	if(g_Settings_bSpawnProtection && g_bSpawnProtection[client]){
+	if(g_Settings_bSpawnProtection && g_bSpawnProtection[client])
+	{
 		if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_GODMODE)
 			return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
+}
+
+public Action Hook_TraceAttack(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &ammotype, int hitbox, int hitgroup){
+	/*
+	*	If headshot-only mode is enabled, this ignores all damage where the
+	*	hitgroup is not 1 (head).
+	*/
+
+	if(g_Settings_bDamage_HSOnly){
+		if((0 < victim <= MaxClients) && (0 < attacker <= MaxClients)){
+			if(IsClientInGame(victim) && IsClientInGame(attacker)){
+				if(hitgroup != 1)
+					return Plugin_Handled;
+			}
+		}
 	}
 
 	return Plugin_Continue;
