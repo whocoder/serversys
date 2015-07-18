@@ -153,6 +153,15 @@ public void OnAllPluginsLoaded(){
 		Call_PushCell(false);
 		Call_Finish();
 	}
+}
+
+public void OnDatabaseLoaded(bool success){
+	g_SysDB_bConnected = success;
+
+	if(!g_SysDB_bConnected)
+		return;
+
+	Sys_DB_RegisterServer();
 
 	if(g_bLateLoad){
 		for(int i = 1; i <= MaxClients; i++){
@@ -164,15 +173,6 @@ public void OnAllPluginsLoaded(){
 			}
 		}
 	}
-}
-
-public void OnDatabaseLoaded(bool success){
-	g_SysDB_bConnected = success;
-
-	if(!g_SysDB_bConnected)
-		return;
-
-	Sys_DB_RegisterServer();
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -371,7 +371,6 @@ void Sys_DB_RegisterServer(){
 	Format(query, sizeof(query), "INSERT INTO servers (id, name) VALUES (%d, '%s') ON DUPLICATE KEY UPDATE name = '%s';",
 		g_Settings_iServerID,
 		safename,
-		g_Settings_iServerID,
 		safename);
 
 	Sys_DB_TQuery(Sys_DB_RegisterServer_CB, query, _, DBPrio_High);
@@ -388,18 +387,18 @@ public void Sys_DB_RegisterServer_CB(Handle owner, Handle hndl, const char[] err
 	Call_Finish();
 }
 
+public void Sys_DB_GenericCallback(Handle owner, Handle hndl, const char[] error, any data){
+	if(hndl == INVALID_HANDLE){
+		LogError("[serversys] core :: Error on SQL from generic CB: %s", error);
+		return;
+	}
+}
+
 void Sys_DB_RegisterPlayer(int client){
 	int auth = GetSteamAccountID(client);
-	char name[MAX_NAME_LENGTH];
-	GetClientName(client, name, sizeof(name));
-
-	int size = (2*MAX_NAME_LENGTH+1);
-	char[] safename = new char[size];
-
-	Sys_DB_EscapeString(name, MAX_NAME_LENGTH, safename, size);
 
 	char query[255];
-	Format(query, sizeof(query), "SELECT id FROM users WHERE auth = '%d';", auth);
+	Format(query, sizeof(query), "SELECT pid FROM users WHERE auth = '%d';", auth);
 
 	Sys_DB_TQuery(Sys_DB_RegisterPlayer_CB, query, GetClientUserId(client), DBPrio_High);
 }
@@ -415,13 +414,24 @@ public void Sys_DB_RegisterPlayer_CB(Handle owner, Handle hndl, const char[] err
 		return;
 	}
 
-	int auth = GetSteamAccountID(client);
-
 	if(SQL_FetchRow(hndl)){
 		int playerid = SQL_FetchInt(hndl, 0);
 
 		g_iPlayerID[client] = playerid;
 		g_bPlayerIDLoaded[client] = true;
+
+		char name[MAX_NAME_LENGTH];
+		GetClientName(client, name, sizeof(name));
+
+		int size = (2*MAX_NAME_LENGTH+1);
+		char[] safename = new char[size];
+
+		Sys_DB_EscapeString(name, MAX_NAME_LENGTH, safename, size);
+
+		char query[255];
+		Format(query, sizeof(query), "UPDATE users SET name='%s' WHERE pid=%d;", safename, playerid);
+
+		Sys_DB_TQuery(Sys_DB_GenericCallback, query, _, DBPrio_Normal);
 
 		Call_StartForward(g_hF_Sys_OnPlayerIDLoaded);
 		Call_PushCell(client);
@@ -430,6 +440,8 @@ public void Sys_DB_RegisterPlayer_CB(Handle owner, Handle hndl, const char[] err
 	}
 	else
 	{
+		int auth = GetSteamAccountID(client);
+
 		char query[255];
 		Format(query, sizeof(query), "INSERT INTO users (auth) VALUES (%d);", auth);
 
@@ -735,6 +747,8 @@ public int Native_DB_EscapeString(Handle plugin, int numParams){
 	int written = GetNativeCell(5);
 
 	SQL_EscapeString(g_SysDB, originalChar, safeChar, safeSize, written);
+
+	SetNativeString(3, safeChar, safeSize);
 }
 
 public int Native_DB_UseDatabase(Handle plugin, int numParams){
