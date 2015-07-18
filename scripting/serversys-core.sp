@@ -231,7 +231,7 @@ void LoadConfig(char[] map_name = ""){
 
 		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none")){
 			g_Settings_bUseDatabase = false;
-			LogError("[serversys] core :: Invalid Server ID supplied.");
+			LogError("[serversys] core :: Invalid Server ID or Server Name supplied.");
 		}
 
 		KvGoBack(kv);
@@ -307,6 +307,12 @@ public void OnClientPutInServer(int client){
 	SDKHook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
 	SDKHook(client, SDKHook_TraceAttack, Hook_TraceAttack);
 	SDKHook(client, SDKHook_SetTransmit, Hook_SetTransmit);
+}
+
+public void OnClientDisconnect(int client){
+	SDKUnHook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
+	SDKUnHook(client, SDKHook_TraceAttack, Hook_TraceAttack);
+	SDKUnHook(client, SDKHook_SetTransmit, Hook_SetTransmit);
 }
 
 public void OnClientAuthorized(int client, const char[] sauth){
@@ -398,7 +404,7 @@ void Sys_DB_RegisterPlayer(int client){
 	int auth = GetSteamAccountID(client);
 
 	char query[255];
-	Format(query, sizeof(query), "SELECT pid FROM users WHERE auth = '%d';", auth);
+	Format(query, sizeof(query), "SELECT pid FROM users WHERE auth = %d;", auth);
 
 	Sys_DB_TQuery(Sys_DB_RegisterPlayer_CB, query, GetClientUserId(client), DBPrio_High);
 }
