@@ -310,9 +310,9 @@ public void OnClientPutInServer(int client){
 }
 
 public void OnClientDisconnect(int client){
-	SDKUnHook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
-	SDKUnHook(client, SDKHook_TraceAttack, Hook_TraceAttack);
-	SDKUnHook(client, SDKHook_SetTransmit, Hook_SetTransmit);
+	SDKUnhook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
+	SDKUnhook(client, SDKHook_TraceAttack, Hook_TraceAttack);
+	SDKUnhook(client, SDKHook_SetTransmit, Hook_SetTransmit);
 }
 
 public void OnClientAuthorized(int client, const char[] sauth){
@@ -412,7 +412,7 @@ void Sys_DB_RegisterPlayer(int client){
 public void Sys_DB_RegisterPlayer_CB(Handle owner, Handle hndl, const char[] error, any data){
 	int client = GetClientOfUserId(data);
 
-	if(client == 0 || (!IsClientInGame(client)))
+	if(client == 0 || (!IsClientConnected(client)))
 		return;
 
 	if(hndl == INVALID_HANDLE){
@@ -458,7 +458,7 @@ public void Sys_DB_RegisterPlayer_CB(Handle owner, Handle hndl, const char[] err
 public void Sys_DB_RegisterPlayer_CB_CB(Handle owner, Handle hndl, const char[] error, any data){
 	int client = GetClientOfUserId(data);
 
-	if(client == 0 || !(IsClientInGame(client)))
+	if(client == 0 || !(IsClientConnected(client)))
 		return;
 
 	if(hndl == INVALID_HANDLE){
