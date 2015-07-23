@@ -563,7 +563,7 @@ public void Sys_DB_UpdatePlayTime(int client){
 	int time = RoundToFloor(GetEngineTime() - g_fPlayerJoinTime[client]);
 
 	char query[255];
-	Format(query, sizeof(query), "UPDATE playtime SET time = (SELECT time FROM playtime WHERE pid = %d and sid = %d)+%d WHERE pid = %d AND sid = %d;",
+	Format(query, sizeof(query), "UPDATE playtime SET time = (SELECT time FROM (SELECT * FROM playtime) AS x WHERE pid = %d and sid = %d)+%d WHERE pid = %d AND sid = %d;",
 		pid, sid, time, pid, sid);
 
 	Sys_DB_TQuery(Sys_DB_GenericCallback, query, GetClientUserId(client), DBPrio_High);
