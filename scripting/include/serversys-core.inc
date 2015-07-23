@@ -89,9 +89,20 @@ native bool Sys_IsHideEnabled(int client);
 native int Sys_GetPlayerID(int client);
 
 /**
-* Gets a PlayerID using auth (GetSteamAccountID)
+* Gets the ServerID.
 *
-* @param auth         Client to check.
+* @return               ServerID or -1 if not yet loaded (wait for OnServerIDLoaded)
+*/
+native int Sys_GetServerID();
+
+/**
+* Gets a PlayerID using auth (GetSteamAccountID). This
+* feature is unavailable if Sys_DB_Connected() is false,
+* which also means if databases are disabled. This is also
+* unavailable until after OnPlayerIDLoaded is ran for this
+* user.
+*
+* @param auth           Account ID of player to check.
 * @return               PlayerID or -1 on failure
 */
 //native int Sys_GetPlayerIDFromAuth(int auth);

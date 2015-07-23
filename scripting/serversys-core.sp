@@ -31,6 +31,8 @@ enum {
 	HIDE_TEAM = 1
 }
 
+bool g_bServerID_Loaded = false;
+
 
 /**
 * Database settings
@@ -40,14 +42,14 @@ char 	g_Settings_cDatabaseName[32];
 int		g_Settings_iServerID;
 char	g_Settings_cServerName[64];
 
+bool 	g_Settings_bPlayTime;
+
 
 /**
 * Database variables
 */
 bool 	g_SysDB_bConnected;
 Handle 	g_SysDB;
-
-float	g_fPlayTime[MAXPLAYERS+1];
 
 /**
 * MapConfig settings
@@ -120,6 +122,8 @@ int		g_iPlayerID[MAXPLAYERS + 1];
 float g_fMapStartTime;
 float g_fPlayerJoinTime[MAXPLAYERS + 1];
 
+bool	g_bPlayTimeLoaded[MAXPLAYERS+1];
+
 
 public void OnPluginStart(){
 	LoadConfig();
@@ -162,6 +166,11 @@ public void OnDatabaseLoaded(bool success){
 		return;
 
 	Sys_DB_RegisterServer();
+}
+
+public void OnServerIDLoaded(int serverID){
+	g_bServerID_Loaded = true;
+
 
 	if(g_bLateLoad){
 		for(int i = 1; i <= MaxClients; i++){
@@ -175,6 +184,12 @@ public void OnDatabaseLoaded(bool success){
 	}
 }
 
+public void OnPlayerIDLoaded(int client, int playerID){
+	g_iPlayerID[client] = playerID;
+
+	Sys_DB_RegisterPlayTime(client);
+}
+
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	RegPluginLibrary("serversys");
@@ -185,6 +200,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Sys_InMap", Native_InMap);
 	CreateNative("Sys_InRound", Native_InMap);
 	CreateNative("Sys_GetPlayerID", Native_GetPlayerID);
+	CreateNative("Sys_GetServerID", Native_GetServerID);
 	CreateNative("Sys_UseDatabase", Native_DB_UseDatabase);
 
 	CreateNative("Sys_DB_Connected", Native_DB_Connected);
@@ -232,6 +248,16 @@ void LoadConfig(char[] map_name = ""){
 		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none")){
 			g_Settings_bUseDatabase = false;
 			LogError("[serversys] core :: Invalid Server ID or Server Name supplied.");
+		}
+
+		if(KvJumpToKey(kv, "playtime") && g_Settings_bUseDatabase){
+			g_Settings_bPlayTime = view_as<bool>KvGetNum(kv, "enabled", 0);
+
+			KvGoBack(kv);
+		}
+		else
+		{
+			g_Settings_bPlayTime = false;
 		}
 
 		KvGoBack(kv);
@@ -313,10 +339,16 @@ public void OnClientDisconnect(int client){
 	SDKUnhook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
 	SDKUnhook(client, SDKHook_TraceAttack, Hook_TraceAttack);
 	SDKUnhook(client, SDKHook_SetTransmit, Hook_SetTransmit);
+
+	if(g_Settings_bUseDatabase && g_Settings_bPlayTime && g_bPlayerIDLoaded[client] && g_bPlayTimeLoaded[client]){
+		Sys_DB_UpdatePlayTime(client);
+	}
 }
 
 public void OnClientAuthorized(int client, const char[] sauth){
 	Sys_DB_RegisterPlayer(client);
+
+	g_fPlayerJoinTime[client] = GetEngineTime();
 }
 
 void Sys_DB_Connect(char[] database){
@@ -469,6 +501,72 @@ public void Sys_DB_RegisterPlayer_CB_CB(Handle owner, Handle hndl, const char[] 
 	{
 		Sys_DB_RegisterPlayer(client);
 	}
+}
+
+public void Sys_DB_RegisterPlayTime(int client){
+	int pid = g_iPlayerID[client];
+	int sid = g_Settings_iServerID;
+
+	char query[255];
+	Format(query, sizeof(query), "SELECT time FROM playtime WHERE pid = %d AND sid = %d;", pid, sid);
+
+	Sys_DB_TQuery(Sys_DB_RegisterPlayTime_CB, query, GetClientUserId(client), DBPrio_High);
+}
+
+public void Sys_DB_RegisterPlayTime_CB(Handle owner, Handle hndl, const char[] error, any data){
+	int client = GetClientOfUserId(data);
+
+	if(client == 0 || (!IsClientConnected(client)))
+		return;
+
+	if(hndl == INVALID_HANDLE){
+		LogError("[serversys] core :: Error loading playtime for (%N): %s", client, error);
+		return;
+	}
+
+	if(!SQL_FetchRow(hndl)){
+		g_bPlayTimeLoaded[client] = false;
+		int pid = g_iPlayerID[client];
+		int sid = g_Settings_iServerID;
+
+		char query[255];
+		Format(query, sizeof(query), "INSERT INTO playtime (pid, sid) VALUES (%d, %d);", pid, sid);
+
+		Sys_DB_TQuery(Sys_DB_RegisterPlayTime_CB_CB, query, GetClientUserId(client), DBPrio_High);
+	}
+	else
+	{
+		g_bPlayTimeLoaded[client] = true;
+	}
+}
+
+public void Sys_DB_RegisterPlayTime_CB_CB(Handle owner, Handle hndl, const char[] error, any data){
+	int client = GetClientOfUserId(data);
+
+	if(client == 0 || (!IsClientConnected(client)))
+		return;
+
+	if(hndl == INVALID_HANDLE){
+		LogError("[serversys] core :: Error loading playtime for (%N): %s", client, error);
+		return;
+	}
+	else
+	{
+		Sys_DB_RegisterPlayTime(client);
+	}
+
+}
+
+public void Sys_DB_UpdatePlayTime(int client){
+	int pid = g_iPlayerID[client];
+	int sid = g_Settings_iServerID;
+	int time = RoundToFloor(GetEngineTime() - g_fPlayerJoinTime[client]);
+
+	char query[255];
+	Format(query, sizeof(query), "UPDATE playtime SET time = (SELECT time FROM playtime WHERE pid = %d and sid = %d)+%d WHERE pid = %d AND sid = %d;",
+		pid, sid, time, pid, sid);
+
+	Sys_DB_TQuery(Sys_DB_GenericCallback, query, GetClientUserId(client), DBPrio_High);
 }
 
 public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBroadcast){
@@ -779,4 +877,11 @@ public int Native_GetPlayerID(Handle plugin, int numParams){
 	}
 
 	return -1;
+}
+
+public int Native_GetServerID(Handle plugin, int numParams){
+	if(!g_bServerID_Loaded)
+		return -1;
+
+	return g_Settings_iServerID;
 }
