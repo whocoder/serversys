@@ -18,12 +18,12 @@ SourceMod Server-Sys is a simple, yet advanced server configuration system. For 
 ## Installation
 Visit the [Getting Started](https://github.com/whocodes/serversys/wiki/Getting-Started) page in the Wiki for a tutorial on installation.
 
-## Intended Features
+## Features
 * [x] Map configuration integration
+* [x] Server ID and Player ID registration
 * [x] Database support with server/player tracking
-* [x] Server-ID and Player-ID registration
-* [ ] Custom game-mode helpful features (Surf, Minigames, etc)
-* [ ] Play-time and stats tracking
+* [x] Multi-server playtime tracking
+* [ ] Dynamic translations and configurable chat triggers
 
 
 If you have any ideas for new features, please let me know!
