@@ -27,6 +27,3 @@ Visit the [Getting Started](https://github.com/whocodes/serversys/wiki/Getting-S
 
 
 If you have any ideas for new features, please let me know!
-
-## Contribute!
-I am always open to merge any changes that are for the good. Please feel free to contribute.
