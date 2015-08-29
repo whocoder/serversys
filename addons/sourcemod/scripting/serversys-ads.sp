@@ -54,12 +54,10 @@ public void OnPluginStart(){
 }
 
 void Sys_LoadAdverts(int ServerID = 0){
-	if(ServerID == 0){
-		if(iServerID == 0)
-			SetFailState("[serversys] ads :: Server ID not loaded");
-		else
-			ServerID = iServerID;
-	}
+	if(iServerID == 0)
+		SetFailState("[serversys] ads :: Server ID not loaded");
+	else
+		ServerID = iServerID;
 
 	char query[255];
 	Format(query, sizeof(query), "SELECT text FROM adverts WHERE sid IN (0, %d);", ServerID);

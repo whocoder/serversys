@@ -374,8 +374,7 @@ public void Sys_DB_Connect_CB(Handle owner, Handle hndl, const char[] error, any
 		return;
 	}
 
-	g_SysDB = CloneHandle(hndl);
-	Sys_KillHandle(hndl);
+	g_SysDB = hndl;
 
 	g_SysDB_bConnected = true;
 
@@ -860,7 +859,7 @@ public int Native_GetPlayerID(Handle plugin, int numParams){
 
 	int client = GetNativeCell(1);
 
-	if(IsClientConnected(client) && IsClientAuthorized(client) && g_bPlayerIDLoaded[client]){
+	if(IsClientAuthorized(client) && g_bPlayerIDLoaded[client]){
 		return g_iPlayerID[client];
 	}
 
