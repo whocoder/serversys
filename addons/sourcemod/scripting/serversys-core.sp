@@ -41,6 +41,7 @@ bool 	g_Settings_bUseDatabase;
 char 	g_Settings_cDatabaseName[32];
 int		g_Settings_iServerID;
 char	g_Settings_cServerName[64];
+char	g_Settings_cServerIP[64];
 
 bool 	g_Settings_bPlayTime;
 
@@ -243,6 +244,8 @@ void LoadConfig(char[] map_name = ""){
 
 		g_Settings_iServerID = KvGetNum(kv, "server_id", -1);
 
+		KvGetString(kv, "server_ip", g_Settings_cServerIP, sizeof(g_Settings_cServerIP), "127.0.0.1");
+
 		KvGetString(kv, "server_name", g_Settings_cServerName, sizeof(g_Settings_cServerName), "none");
 
 		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none")){
@@ -406,10 +409,10 @@ void Sys_DB_RegisterServer(){
 	Sys_DB_EscapeString(g_Settings_cServerName, 64, safename, size);
 
 	char query[255];
-	Format(query, sizeof(query), "INSERT INTO servers (id, name) VALUES (%d, '%s') ON DUPLICATE KEY UPDATE name = '%s';",
+	Format(query, sizeof(query), "INSERT INTO servers (id) VALUES (%d) ON DUPLICATE KEY UPDATE name = '%s', ip = '%s';",
 		g_Settings_iServerID,
 		safename,
-		safename);
+		g_Settings_cServerIP);
 
 	Sys_DB_TQuery(Sys_DB_RegisterServer_CB, query, _, DBPrio_High);
 }
@@ -467,7 +470,7 @@ public void Sys_DB_RegisterPlayer_CB(Handle owner, Handle hndl, const char[] err
 		Sys_DB_EscapeString(name, MAX_NAME_LENGTH, safename, size);
 
 		char query[255];
-		Format(query, sizeof(query), "UPDATE users SET name='%s' WHERE pid=%d;", safename, playerid);
+		Format(query, sizeof(query), "UPDATE users SET name='%s', lastseen = UNIX_TIMESTAMP() WHERE pid=%d;", safename, playerid);
 
 		Sys_DB_TQuery(Sys_DB_GenericCallback, query, _, DBPrio_Normal);
 
