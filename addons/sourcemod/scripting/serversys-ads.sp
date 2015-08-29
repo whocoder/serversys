@@ -25,7 +25,7 @@ int Ads_Current = 0;
 int iServerID = 0;
 int LoadAttempts = 0;
 
-Handle Ads_Timer = INVALID_HANDLE;
+Handle Ads_Timer;
 
 
 public void OnServerIDLoaded(int ServerID){
