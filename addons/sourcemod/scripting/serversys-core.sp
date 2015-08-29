@@ -16,21 +16,6 @@ public Plugin myinfo = {
 	url = SERVERSYS_URL
 }
 
-enum {
-	NOBLOCK_TYPE_COLLISIONGROUP = 0,
-	NOBLOCK_TYPE_SOLIDTYPE = 1
-}
-
-enum {
-	SPAWNPROTECT_GODMODE = 0,
-	SPAWNPROTECT_RESPAWN = 1
-}
-
-enum {
-	HIDE_NORMAL = 0,
-	HIDE_TEAM = 1
-}
-
 bool g_bServerID_Loaded = false;
 
 

@@ -3,6 +3,21 @@
 #endif
 #define _serversys_core_included
 
+enum {
+	NOBLOCK_TYPE_COLLISIONGROUP = 0,
+	NOBLOCK_TYPE_SOLIDTYPE = 1
+}
+
+enum {
+	SPAWNPROTECT_GODMODE = 0,
+	SPAWNPROTECT_RESPAWN = 1
+}
+
+enum {
+	HIDE_NORMAL = 0,
+	HIDE_TEAM = 1
+}
+
 /**
 * Called when the Server-Sys database is loaded.
 *
@@ -170,5 +185,6 @@ public __pl_serversys_core_SetNTVOptional(){
 
     MarkNativeAsOptional("Sys_DB_TQuery");
     MarkNativeAsOptional("Sys_DB_EscapeString");
+    MarkNativeAsOptional("Sys_DB_Connected");
 }
 #endif
