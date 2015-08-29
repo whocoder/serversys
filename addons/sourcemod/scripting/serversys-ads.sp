@@ -33,13 +33,13 @@ public void OnServerIDLoaded(int ServerID){
 	Sys_LoadAdverts();
 }
 
-void LoadConfig(char[] map_name = ""){
+void LoadConfig(){
 	Handle kv = CreateKeyValues("Advertisements");
 	char Config_Path[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, Config_Path, sizeof(Config_Path), "configs/serversys/ads.cfg");
 
 	if(!(FileExists(Config_Path)) || !(FileToKeyValues(kv, Config_Path))){
-		CloseHandle(kv);
+		Sys_KillHandle(kv);
 		SetFailState("[serversys] ads :: Cannot read from configuration file: %s", Config_Path);
     }
 

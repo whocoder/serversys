@@ -218,7 +218,7 @@ void LoadConfig(char[] map_name = ""){
 	}
 
 	if(!(FileExists(Config_Path)) || !(FileToKeyValues(kv, Config_Path))){
-		CloseHandle(kv);
+		Sys_KillHandle(kv);
 		SetFailState("[serversys] core :: Cannot read from configuration file: %s", Config_Path);
     }
 
@@ -310,7 +310,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bDamage_HSOnly = false;
 	}
 
-	CloseHandle(kv);
+	Sys_KillHandle(kv);
 }
 
 public void OnClientPutInServer(int client){
