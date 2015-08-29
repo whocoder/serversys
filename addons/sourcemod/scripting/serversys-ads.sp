@@ -51,6 +51,8 @@ void LoadConfig(char[] map_name = ""){
 
 public void OnPluginStart(){
 	LoadConfig();
+
+	Ads_Array = new ArrayList(ByteCountToCells(128));
 }
 
 void Sys_LoadAdverts(int ServerID = 0){
@@ -73,7 +75,8 @@ public void Sys_LoadAdverts_CB(Handle owner, Handle hndl, const char[] error, an
 		return;
 	}
 
-	Ads_Array = new ArrayList(128);
+	Ads_Array.Clear();
+
 	char temp_string[128];
 
 	while(SQL_FetchRow(hndl)){
