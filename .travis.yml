@@ -22,7 +22,7 @@ install:
   - tar -xzvf sourcemod-$SOURCEMOD-linux.tar.gz
   - cd addons/sourcemod
   - wget https://github.com/bcserv/smlib/archive/master.zip
-  - tar -xvf master.zip
+  - unzip master.zip
   - cd ../
   - find build-env/addons/sourcemod/scripting/ -name "*.sp" -type f -delete
   - cp -rv $SCRIPTING/. build-env/addons/sourcemod/scripting/
