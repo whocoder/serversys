@@ -23,6 +23,7 @@ install:
   - cd addons/sourcemod
   - wget https://github.com/bcserv/smlib/archive/master.zip
   - unzip master.zip
+  - cp -rv smlib-master/. /.
   - cd ../../../
   - find build-env/addons/sourcemod/scripting/ -name "*.sp" -type f -delete
   - cp -rv $SCRIPTING/. build-env/addons/sourcemod/scripting/
