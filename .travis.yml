@@ -40,4 +40,4 @@ script:
 
 after_success:
   - cd compiled
-  - find . -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} ftp://$FTPPATH/$SOURCEMOD/$THIS/{} \;
+  - find . -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} ftp://$FTPPATH/$THIS/$SOURCEMOD/{} \;
