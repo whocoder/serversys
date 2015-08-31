@@ -8,7 +8,6 @@ env:
   global:
     - INCLUDE=addons/sourcemod/scripting/include/
     - SCRIPTING=addons/sourcemod/scripting/
-    - PLUGINS=addons/sourcemod/plugins/
   matrix:
     - SOURCEMOD=1.7.1
     - SOURCEMOD=1.7.2
@@ -39,7 +38,5 @@ script:
   - ./compile.sh
 
 after_success:
-  - cd ../../../..
-  - cp -rv build-env/addons/sourcemod/scripting/compiled/. $PLUGINS
-  - cd $PLUGINS
+  - cd compiled
   - find . -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} ftp://$FTPPATH/$SOURCEMOD/{} \;
