@@ -71,7 +71,7 @@ void Sys_LoadAdverts(int ServerID = 0){
 
 public void Sys_LoadAdverts_CB(Handle owner, Handle hndl, const char[] error, any data){
 	if(hndl == INVALID_HANDLE){
-		LogError("[serversys] ads :: Error loading advertisements: %s", client, error);
+		LogError("[serversys] ads :: Error loading advertisements: %s", error);
 		return;
 	}
 
