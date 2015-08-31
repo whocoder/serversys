@@ -92,10 +92,12 @@ public void Sys_LoadAdverts_CB(Handle owner, Handle hndl, const char[] error, an
 
 public Action Sys_Adverts_Timer(Handle timer, any data){
 	if(Ads_Array != INVALID_HANDLE){
-		char current_ad[128];
-		Ads_Array.GetString(Ads_Current, current_ad, sizeof(current_ad));
+		if(Ads_Array.Length > 0){
+			char current_ad[128];
+			Ads_Array.GetString(Ads_Current, current_ad, sizeof(current_ad));
 
-		PrintTextChatAll("%s %s", Ads_Prefix, current_ad);
+			PrintTextChatAll("%s %s", Ads_Prefix, current_ad);
+		}
 	}else{
 		if(LoadAttempts <= 5)
 			Sys_LoadAdverts();
