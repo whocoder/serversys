@@ -392,7 +392,7 @@ void Sys_DB_RegisterServer(){
 
 	Sys_DB_EscapeString(g_Settings_cServerName, 64, safename, size);
 
-	char query[255];
+	char query[1024];
 	Format(query, sizeof(query), "INSERT INTO servers (id) VALUES (%d) ON DUPLICATE KEY UPDATE name = '%s', ip = '%s';",
 		g_Settings_iServerID,
 		safename,
