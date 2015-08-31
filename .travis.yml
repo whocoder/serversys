@@ -6,6 +6,7 @@ addons:
 
 env:
   global:
+    - THIS="serversys"
     - INCLUDE=addons/sourcemod/scripting/include/
     - SCRIPTING=addons/sourcemod/scripting/
   matrix:
@@ -39,4 +40,4 @@ script:
 
 after_success:
   - cd compiled
-  - curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T serversys-core.smx ftp://$FTPPATH/$SOURCEMOD/serversys-core.smx \;
+  - find . -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} ftp://$FTPPATH/$SOURCEMOD/$THIS/{} \;
