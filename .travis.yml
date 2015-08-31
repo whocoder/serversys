@@ -39,5 +39,5 @@ script:
 
 after_success:
   - cd compiled
-  - echo 'ftp://GOOGLE/$SOURCEMOD/{}'
-  - find . -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} 'ftp://$FTPPATH/$SOURCEMOD/{}' \;
+  - echo 'ftp://GOOGLE/'$SOURCEMOD'/{}'
+  - find . -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} 'ftp://'$FTPPATH'/'$SOURCEMOD'/{}' \;
