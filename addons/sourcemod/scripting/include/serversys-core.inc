@@ -142,6 +142,18 @@ native bool Sys_DB_Connected();
 */
 native void Sys_DB_TQuery(SQLTCallback callback, const char[] query, any data = 0, DBPriority prio = DBPrio_Normal);
 
+
+/**
+* Queries the main Server-Sys database and returns like normal SQL_Query.
+* Do not use this function for high-cost methods, as server locking up is
+* possible.
+*
+* @param query			Query to execute.
+*
+* @return               DBResultSet result
+*/
+native DBResultSet Sys_DB_Query(const char[] query);
+
 /**
 * Escapes a string like normal SQL_EscapeString.
 * Your safebuffer's size MUST be EXACTLY:
@@ -184,6 +196,7 @@ public __pl_serversys_core_SetNTVOptional(){
     //MarkNativeAsOptional("Sys_GetPlayerIDFromAuth");
 
     MarkNativeAsOptional("Sys_DB_TQuery");
+    MarkNativeAsOptional("Sys_DB_Query");
     MarkNativeAsOptional("Sys_DB_EscapeString");
     MarkNativeAsOptional("Sys_DB_Connected");
 }

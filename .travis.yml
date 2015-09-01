@@ -9,8 +9,6 @@ env:
     - THIS="serversys"
     - INCLUDE=addons/sourcemod/scripting/include/
     - SCRIPTING=addons/sourcemod/scripting/
-  matrix:
-    - SOURCEMOD=1.7.1
     - SOURCEMOD=1.7.2
 
 before_install:
@@ -40,4 +38,4 @@ script:
 
 after_success:
   - cd compiled
-  - find . -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} ftp://$FTPPATH/$THIS/$SOURCEMOD/{} \;
+  - find . -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} ftp://$FTPPATH/$THIS/$TRAVIS_BUILD_NUMBER/{} \;
