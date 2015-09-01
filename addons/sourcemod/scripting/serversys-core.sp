@@ -791,7 +791,7 @@ public int Native_DB_Query(Handle plugin, int numParams){
 	if(g_Settings_bUseDatabase && g_SysDB_bConnected){
 		int size;
 		GetNativeStringLength(1, size);
-		char sQuery = new char[size];
+		char[] sQuery = new char[size];
 		GetNativeString(1, sQuery, size);
 
 		return view_as<DBResultSet>SQL_Query(g_SysDB, sQuery);
