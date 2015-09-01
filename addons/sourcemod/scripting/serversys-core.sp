@@ -190,6 +190,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Sys_UseDatabase", Native_DB_UseDatabase);
 
 	CreateNative("Sys_DB_Connected", Native_DB_Connected);
+	CreateNative("Sys_DB_Query", Native_DB_Query);
 	CreateNative("Sys_DB_TQuery", Native_DB_TQuery);
 	CreateNative("Sys_DB_EscapeString", Native_DB_EscapeString);
 
@@ -784,6 +785,17 @@ public int Native_InRound(Handle plugin, int numParams){
 
 public int Native_InMap(Handle plugin, int numParams){
 	return g_bInMap;
+}
+
+public int Native_DB_Query(Handle plugin, int numParams){
+	if(g_Settings_bUseDatabase && g_SysDB_bConnected){
+		int size;
+		GetNativeStringLength(1, size);
+		char sQuery = new char[size];
+		GetNativeString(1, sQuery, size);
+
+		return view_as<DBResultSet>SQL_Query(g_SysDB, sQuery);
+	}
 }
 
 public int Native_DB_TQuery(Handle plugin, int numParams){
