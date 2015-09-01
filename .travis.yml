@@ -9,8 +9,6 @@ env:
     - THIS="serversys"
     - INCLUDE=addons/sourcemod/scripting/include/
     - SCRIPTING=addons/sourcemod/scripting/
-  matrix:
-    - SOURCEMOD=1.7.1
     - SOURCEMOD=1.7.2
 
 before_install:
