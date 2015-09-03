@@ -23,6 +23,36 @@ stock void Sys_KillHandle(Handle hndl){
 }
 
 /**
+* Used to get the amount of connected
+* players in the server.
+*
+* @param Team			Optional int to specify a team.
+*/
+stock int Sys_PlayerCount(int Team = -1){
+	int count = 0;
+	for(int i = 1; i <= MaxClients; i++){
+		if(IsClientConnected(i) && ((Team != -1) ? (GetClientTeam(i) == Team) : true))
+			count++;
+	}
+	return count;
+}
+
+/**
+* Used to get the amount of alive
+* players in the server.
+*
+* @param Team			Optional int to specify a team.
+*/
+stock int Sys_AlivePlayerCount(int Team = -1){
+	int count = 0;
+	for(int i = 1; i <= MaxClients; i++){
+		if(IsClientConnected(i) && IsPlayerAlive(i) && ((Team != -1) ? (GetClientTeam(i) == Team) : true))
+			count++;
+	}
+	return count;
+}
+
+/**
 * Used to print console messages to all players
 *
 * @param format			String to print
