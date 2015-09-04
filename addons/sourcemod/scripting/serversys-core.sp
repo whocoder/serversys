@@ -785,7 +785,7 @@ public int Native_InMap(Handle plugin, int numParams){
 	return g_bInMap;
 }
 
-public DBResultSet Native_DB_Query(Handle plugin, int numParams){
+public int Native_DB_Query(Handle plugin, int numParams){
 	if(g_SysDB_bConnected){
 		int size;
 		GetNativeStringLength(1, size);
