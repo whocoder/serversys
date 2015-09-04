@@ -785,6 +785,10 @@ public int Native_InMap(Handle plugin, int numParams){
 	return g_bInMap;
 }
 
+
+// Returning a handle (really a DBResultSet) required
+// 	some view_as hacky shit. Don't blame me. It compiled
+//	without this hack, but it gave mismatch warnings.
 public int Native_DB_Query(Handle plugin, int numParams){
 	if(g_SysDB_bConnected){
 		int size;
@@ -792,9 +796,9 @@ public int Native_DB_Query(Handle plugin, int numParams){
 		char[] sQuery = new char[size];
 		GetNativeString(1, sQuery, size);
 
-		return SQL_Query(g_SysDB, sQuery);
+		return view_as<any>SQL_Query(g_SysDB, sQuery);
 	}
-	return INVALID_HANDLE;
+	return view_as<any>INVALID_HANDLE;
 }
 
 public int Native_DB_TQuery(Handle plugin, int numParams){
@@ -817,7 +821,6 @@ public int Native_DB_TQuery(Handle plugin, int numParams){
 
 		SQL_TQuery(g_SysDB, Native_DB_TQuery_Callback, sQuery, hPack, prio);
 	}
-	return;
 }
 
 public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] error, any data)
@@ -836,8 +839,6 @@ public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] er
 	Call_PushString(error);
 	Call_PushCell(hPack);
 	Call_Finish();
-
-	return;
 }
 
 public int Native_DB_EscapeString(Handle plugin, int numParams){
@@ -854,8 +855,6 @@ public int Native_DB_EscapeString(Handle plugin, int numParams){
 	SQL_EscapeString(g_SysDB, originalChar, safeChar, safeSize, written);
 
 	SetNativeString(3, safeChar, safeSize);
-
-	return;
 }
 
 public int Native_DB_Connected(Handle plugin, int numParams){
