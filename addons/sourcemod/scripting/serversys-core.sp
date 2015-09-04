@@ -792,9 +792,9 @@ public int Native_DB_Query(Handle plugin, int numParams){
 		char[] sQuery = new char[size];
 		GetNativeString(1, sQuery, size);
 
-		return view_as<DBResultSet>SQL_Query(g_SysDB, sQuery);
+		return SQL_Query(g_SysDB, sQuery);
 	}
-	return;
+	return null;
 }
 
 public int Native_DB_TQuery(Handle plugin, int numParams){
@@ -881,7 +881,7 @@ public int Native_RegisterChatCommand(Handle plugin, int numParams){
 
 	char commands[32];
 	GetNativeString(1, commands, sizeof(commands));
-	Sys_ChatCommand_CB callback = GetNativeFunction(2);
+	Sys_ChatCommand_CB callback = view_as<Sys_ChatCommand_CB>GetNativeFunction(2);
 
 	char splitcommands[32][32];
 	int count = ExplodeString(commands, " ", splitcommands, sizeof(splitcommands), sizeof(splitcommands[]));
