@@ -419,13 +419,13 @@ public void Sys_DB_RegisterServer_CB(Handle owner, Handle hndl, const char[] err
 void Sys_DB_RegisterMap(const char[] mapname){
 	char query[1024];
 	Format(query, sizeof(query), "INSERT INTO maps (name) VALUES ('%s') ON DUPLICATE KEY UPDATE lastplayed = UNIX_TIMESTAMP();", mapname);
-	DataPack pack = CreateDataPack();
+	DataPack pack = new DataPack();
 	pack.WriteString(mapname);
 
 	Sys_DB_TQuery(Sys_DB_RegisterMap_CB, query, pack, DBPrio_High);
 }
 
-public void Sys_DB_RegisterMap_CB(Handle owner, Handle hndl, const char[] error, any data){
+public void Sys_DB_RegisterMap_CB(Handle owner, Handle hndl, const char[] error, DataPack data){
 	if(hndl == INVALID_HANDLE){
 		LogError("[serversys] core :: Error on registering map: %s", error);
 		return;
@@ -441,7 +441,7 @@ public void Sys_DB_RegisterMap_CB(Handle owner, Handle hndl, const char[] error,
 	}
 }
 
-public void Sys_DB_RegisterMap_CB_CB(Handle owner, Handle hndl, const char[] error, any data){
+public void Sys_DB_RegisterMap_CB_CB(Handle owner, Handle hndl, const char[] error, DataPack data){
 	if(hndl == INVALID_HANDLE){
 		LogError("[serversys] core :: Error on selecting map: %s", error);
 		return;
@@ -450,6 +450,7 @@ public void Sys_DB_RegisterMap_CB_CB(Handle owner, Handle hndl, const char[] err
 	char mapname[64];
 	data.ReadString(mapname, sizeof(mapname));
 	CloseHandle(data);
+	
 	if(StrEqual(mapname, g_cMapName) && Sys_InMap()){
 		g_iMapID = SQL_FetchInt(hndl, 0);
 
