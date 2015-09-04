@@ -92,6 +92,7 @@ bool	g_Settings_bDamage_HSOnly;
 Handle	g_hF_Sys_OnDatabaseLoaded;
 Handle	g_hF_Sys_OnServerIDLoaded;
 Handle 	g_hF_Sys_OnPlayerIDLoaded;
+Handle 	g_hF_Sys_OnMapIDLoaded;
 
 /**
 * Chat command functionality
@@ -110,10 +111,12 @@ bool 	g_bLateLoad = false;
 bool 	g_bInMap = false;
 bool	g_bInRound = false;
 
+int		g_iMapID = 0;
+
 bool	g_bPlayerIDLoaded[MAXPLAYERS + 1];
 int		g_iPlayerID[MAXPLAYERS + 1];
 
-float g_fMapStartTime;
+int g_iMapStartTime;
 float g_fPlayerJoinTime[MAXPLAYERS + 1];
 
 bool	g_bPlayTimeLoaded[MAXPLAYERS+1];
@@ -187,6 +190,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Sys_InRound", Native_InMap);
 	CreateNative("Sys_GetPlayerID", Native_GetPlayerID);
 	CreateNative("Sys_GetServerID", Native_GetServerID);
+	CreateNative("Sys_GetMapID", Native_GetMapID);
 
 	CreateNative("Sys_RegisterChatCommand", Native_RegisterChatCommand);
 
@@ -198,6 +202,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	g_hF_Sys_OnDatabaseLoaded = CreateGlobalForward("OnDatabaseLoaded", ET_Event, Param_Cell);
 	g_hF_Sys_OnServerIDLoaded = CreateGlobalForward("OnServerIDLoaded", ET_Event, Param_Cell);
 	g_hF_Sys_OnPlayerIDLoaded = CreateGlobalForward("OnPlayerIDLoaded", ET_Event, Param_Cell, Param_Cell);
+	g_hF_Sys_OnMapIDLoaded	  = CreateGlobalForward("OnMapIDLoaded", 	ET_Event, Param_Cell, Param_String);
 
 	g_bLateLoad = late;
 
@@ -409,6 +414,49 @@ public void Sys_DB_RegisterServer_CB(Handle owner, Handle hndl, const char[] err
 	Call_StartForward(g_hF_Sys_OnServerIDLoaded);
 	Call_PushCell(g_Settings_iServerID);
 	Call_Finish();
+}
+
+void Sys_DB_RegisterMap(const char[] mapname){
+	char query[1024];
+	Format(query, sizeof(query), "INSERT INTO maps (name) VALUES ('%s') ON DUPLICATE KEY UPDATE lastplayed = UNIX_TIMESTAMP();", mapname);
+	DataPack pack = CreateDataPack();
+	pack.WriteString(mapname);
+
+	Sys_DB_TQuery(Sys_DB_RegisterMap_CB, query, pack, DBPrio_High);
+}
+
+public void Sys_DB_RegisterMap_CB(Handle owner, Handle hndl, const char[] error, any data){
+	if(hndl == INVALID_HANDLE){
+		LogError("[serversys] core :: Error on registering map: %s", error);
+		return;
+	}
+	char mapname[64];
+	data.ReadString(mapname, sizeof(mapname));
+	data.Position = data.Position - 1;
+	if(StrEqual(mapname, g_cMapName)){
+		char query[1024];
+		Format(query, sizeof(query), "SELECT id FROM maps WHERE name = '%s'", mapname);
+
+		Sys_DB_TQuery(Sys_DB_RegisterMap_CB_CB, query, data, DBPrio_High);
+	}
+}
+
+public void Sys_DB_RegisterMap_CB_CB(Handle owner, Handle hndl, const char[] error, any data){
+	if(hndl == INVALID_HANDLE){
+		LogError("[serversys] core :: Error on selecting map: %s", error);
+		return;
+	}
+
+	char mapname[64];
+	data.ReadString(mapname, sizeof(mapname));
+	CloseHandle(data);
+	if(StrEqual(mapname, g_cMapName) && Sys_InMap()){
+		g_iMapID = SQL_FetchInt(hndl, 0);
+
+		Call_StartForward(g_hF_Sys_OnMapIDLoaded);
+		Call_PushCell(Sys_GetMapID());
+		Call_Finish();
+	}
 }
 
 public void Sys_DB_GenericCallback(Handle owner, Handle hndl, const char[] error, any data){
@@ -729,8 +777,9 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 
 public void OnMapStart(){
 	g_bInMap = true;
-	g_fMapStartTime = GetEngineTime();
+	g_iMapStartTime = GetTime();
 	GetCurrentMap(g_cMapName, sizeof(g_cMapName));
+	Sys_DB_RegisterMap(g_cMapName);
 
 	if(g_Settings_bMapConfig){
 		CreateTimer(0.5, OnMapStart_Timer_LoadConfig);
@@ -738,9 +787,19 @@ public void OnMapStart(){
 }
 
 public void OnMapEnd(){
+	if(Sys_GetMapID() != -1){
+		char query[1024];
+		Format(query, sizeof(query), "UPDATE maps_playtime SET time = time + %d WHERE sid = %d and mid = %d",
+			(GetTime() - g_iMapStartTime), Sys_GetServerID(), Sys_GetMapID());
+
+		Sys_DB_TQuery(Sys_DB_GenericCallback, query);
+	}
 	g_bInMap = false;
+	g_iMapID = 0;
 	Format(g_cMapName, sizeof(g_cMapName), "");
 }
+
+
 
 public Action OnMapStart_Timer_LoadConfig(Handle timer){
 	GetCurrentMap(g_cMapName, sizeof(g_cMapName));
@@ -914,4 +973,12 @@ public int Native_GetServerID(Handle plugin, int numParams){
 		return -1;
 
 	return g_Settings_iServerID;
+}
+
+public int Native_GetMapID(Handle plugin, int numParams){
+	if(g_iMapID == 0 || strlen(g_cMapName) < 1 || !Sys_InMap()){
+		return -1;
+	}
+
+	return g_iMapID;
 }

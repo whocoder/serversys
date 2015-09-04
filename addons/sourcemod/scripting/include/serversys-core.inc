@@ -55,6 +55,21 @@ forward void OnServerIDLoaded(int serverID);
 forward void OnPlayerIDLoaded(int client, int playerID);
 
 /**
+* Called after the Map ID is created or selected,
+* which is done when OnMapStart is called. The call
+* SHOULD in theory be prevented if another map change
+* were to suddenly happen before the select query could
+* be transacted, as this checks Sys_InMap() before firing.
+*
+* @param mapid          The ID of the map.
+* @param mapname		The name of the map that the ID corresponds to.
+*/
+forward void OnMapIDLoaded(int mapid, const char[] mapname);
+
+
+
+
+/**
 * Reloads the core plugin's config file.
 *
 * @param map          Whether to load the maps config (if exists)
@@ -108,6 +123,14 @@ native int Sys_GetPlayerID(int client);
 * @return               ServerID or -1 if not yet loaded (wait for OnServerIDLoaded)
 */
 native int Sys_GetServerID();
+
+/**
+* Gets the MapID. This will return -1 if we are not in
+* a map, or if the MapID has not been loaded yet.
+*
+* @return               MapID or -1
+*/
+native int Sys_GetMapID();
 
 /**
 * Gets a PlayerID using auth (GetSteamAccountID). This
@@ -197,17 +220,13 @@ public SharedPlugin __pl_serversys_core =
 public __pl_serversys_core_SetNTVOptional(){
     MarkNativeAsOptional("Sys_ReloadConfiguration");
     MarkNativeAsOptional("Sys_RegisterChatCommand");
-
     MarkNativeAsOptional("Sys_IsHideEnabled");
-
     MarkNativeAsOptional("Sys_UseMapConfigs");
-
     MarkNativeAsOptional("Sys_InMap");
     MarkNativeAsOptional("Sys_InRound");
-
     MarkNativeAsOptional("Sys_GetPlayerID");
-    //MarkNativeAsOptional("Sys_GetPlayerIDFromAuth");
-
+    MarkNativeAsOptional("Sys_GetServerID");
+    MarkNativeAsOptional("Sys_GetMapID");
     MarkNativeAsOptional("Sys_DB_TQuery");
     MarkNativeAsOptional("Sys_DB_Query");
     MarkNativeAsOptional("Sys_DB_EscapeString");
