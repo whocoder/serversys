@@ -3,6 +3,12 @@
 #endif
 #define _serversys_core_included
 
+typeset Sys_ChatCommand_CB {
+	function void(int client);
+	function void(int client, const char[] command);
+	function void(int client, const char[] command, const char[] args);
+}
+
 enum {
 	NOBLOCK_TYPE_COLLISIONGROUP = 0,
 	NOBLOCK_TYPE_SOLIDTYPE = 1
@@ -115,6 +121,20 @@ native int Sys_GetServerID();
 */
 //native int Sys_GetPlayerIDFromAuth(int auth);
 
+
+/**
+* Registers a chat command to the specified callback,
+* credit for this functionality is mostly due to
+* Drixevel's work on SourceMod-Store.
+*
+* @param command        String of commands to check, seperated by space.
+*                           (Ex: '/hey !hey .hey ;;hey');
+* @param callback       Callback to call when command is ran.
+*
+* @return               Whether or not register was successful.
+*/
+native bool Sys_RegisterChatCommand(const char[] command, Sys_ChatCommand_CB callback);
+
 /**
 * Check if the DB is connected.
 *
@@ -176,6 +196,7 @@ public SharedPlugin __pl_serversys_core =
 #if defined REQUIRE_PLUGIN
 public __pl_serversys_core_SetNTVOptional(){
     MarkNativeAsOptional("Sys_ReloadConfiguration");
+    MarkNativeAsOptional("Sys_RegisterChatCommand");
 
     MarkNativeAsOptional("Sys_IsHideEnabled");
 

@@ -94,6 +94,15 @@ Handle	g_hF_Sys_OnServerIDLoaded;
 Handle 	g_hF_Sys_OnPlayerIDLoaded;
 
 /**
+* Chat command functionality
+*/
+Handle g_hCC_Plugin[SYS_MAX_COMMANDS];
+char g_cCC_Commands[SYS_MAX_COMMANDS][32];
+Sys_ChatCommand_CB g_fCC_Callback[SYS_MAX_COMMANDS];
+
+int g_iCC_Count;
+
+/**
 * Server functionality variables
 */
 
@@ -858,6 +867,41 @@ public int Native_GetPlayerID(Handle plugin, int numParams){
 	}
 
 	return -1;
+}
+
+public int Native_RegisterChatCommand(Handle plugin, int numParams){
+	if(g_iCC_Count >= SYS_MAX_COMMANDS)
+		return false;
+
+	char commands[32];
+	GetNativeString(1, commands, sizeof(commands));
+	Sys_ChatCommand_CB callback = GetNativeFunction(2);
+
+	char splitcommands[32][32];
+	int count = ExplodeString(commands, " ", splitcommands, sizeof(splitcommands), sizeof(splitcommands[]));
+
+	// If there's no commands or the amount of commands + our
+	// 	current amount is too much.
+	if((count <= 0) || ((g_iCC_Count + count) >= SYS_MAX_COMMANDS))
+		return false;
+
+	// Check if the command is taken already
+	for(int i = 0; i < g_iCC_Count; i++){
+		for(int n = 0; n < count; n++){
+			if(StrEqual(splitcommands[n], g_cCC_Commands[i], false))
+				return false;
+		}
+	}
+
+	for(int i = 0; i < count; i++){
+		strcopy(g_cCC_Commands[g_iCC_Count], 32, splitcommands[i]);
+		g_hCC_Plugin[g_iCC_Count] = plugin;
+		g_fCC_Callback[g_iCC_Count] = callback;
+
+		g_iCC_Count++;
+	}
+
+	return true;
 }
 
 public int Native_GetServerID(Handle plugin, int numParams){
