@@ -22,7 +22,6 @@ bool g_bServerID_Loaded = false;
 /**
 * Database settings
 */
-bool 	g_Settings_bUseDatabase;
 char 	g_Settings_cDatabaseName[32];
 int		g_Settings_iServerID;
 char	g_Settings_cServerName[64];
@@ -134,15 +133,7 @@ public void OnPluginEnd(){
 * after OnPluginStart
 */
 public void OnAllPluginsLoaded(){
-	if(g_Settings_bUseDatabase){
-		Sys_DB_Connect(g_Settings_cDatabaseName);
-	}
-	else
-	{
-		Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
-		Call_PushCell(false);
-		Call_Finish();
-	}
+	Sys_DB_Connect(g_Settings_cDatabaseName);
 }
 
 public void OnDatabaseLoaded(bool success){
@@ -187,7 +178,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Sys_InRound", Native_InMap);
 	CreateNative("Sys_GetPlayerID", Native_GetPlayerID);
 	CreateNative("Sys_GetServerID", Native_GetServerID);
-	CreateNative("Sys_UseDatabase", Native_DB_UseDatabase);
+
+	CreateNative("Sys_RegisterChatCommand", Native_RegisterChatCommand);
 
 	CreateNative("Sys_DB_Connected", Native_DB_Connected);
 	CreateNative("Sys_DB_Query", Native_DB_Query);
@@ -224,8 +216,6 @@ void LoadConfig(char[] map_name = ""){
     }
 
 	if(KvJumpToKey(kv, "database")){
-		g_Settings_bUseDatabase = view_as<bool>KvGetNum(kv, "enabled", 0);
-
 		KvGetString(kv, "name", g_Settings_cDatabaseName, sizeof(g_Settings_cDatabaseName), "serversys");
 
 		g_Settings_iServerID = KvGetNum(kv, "server_id", -1);
@@ -235,11 +225,10 @@ void LoadConfig(char[] map_name = ""){
 		KvGetString(kv, "server_name", g_Settings_cServerName, sizeof(g_Settings_cServerName), "none");
 
 		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none")){
-			g_Settings_bUseDatabase = false;
 			LogError("[serversys] core :: Invalid Server ID or Server Name supplied.");
 		}
 
-		if(KvJumpToKey(kv, "playtime") && g_Settings_bUseDatabase){
+		if(KvJumpToKey(kv, "playtime")){
 			g_Settings_bPlayTime = view_as<bool>KvGetNum(kv, "enabled", 0);
 
 			KvGoBack(kv);
@@ -252,7 +241,7 @@ void LoadConfig(char[] map_name = ""){
 		KvGoBack(kv);
 	}
 	else
-		g_Settings_bUseDatabase = false;
+		SetFailState("[server-sys] core :: Unable to find database config block");
 
 	if(KvJumpToKey(kv, "mapconfigs")){
 		g_Settings_bMapConfig = view_as<bool>KvGetNum(kv, "enabled", 1);
@@ -329,7 +318,7 @@ public void OnClientDisconnect(int client){
 	SDKUnhook(client, SDKHook_TraceAttack, Hook_TraceAttack);
 	SDKUnhook(client, SDKHook_SetTransmit, Hook_SetTransmit);
 
-	if(g_Settings_bUseDatabase && g_Settings_bPlayTime && g_bPlayerIDLoaded[client] && g_bPlayTimeLoaded[client]){
+	if(g_Settings_bPlayTime && g_bPlayerIDLoaded[client] && g_bPlayTimeLoaded[client]){
 		Sys_DB_UpdatePlayTime(client);
 	}
 }
@@ -351,17 +340,17 @@ void Sys_DB_Connect(char[] database){
 	}
 	else
 	{
-		g_Settings_bUseDatabase = false;
-		Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
-		Call_PushCell(false);
-		Call_Finish();
+		SetFailState("[server-sys] core :: No server-sys database config found in databases.cfg!");
 	}
 }
 
 public void Sys_DB_Connect_CB(Handle owner, Handle hndl, const char[] error, any data){
 	if(g_iSafeConnectCount >= 5){
-		SetFailState("[serversys] core :: Reached connection count without success. Plugin stopped.");
+		Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
+		Call_PushCell(false);
+		Call_Finish();
 
+		SetFailState("[serversys] core :: Reached connection count without success. Plugin stopped.");
 		return;
 	}
 
@@ -788,7 +777,7 @@ public int Native_InMap(Handle plugin, int numParams){
 }
 
 public int Native_DB_Query(Handle plugin, int numParams){
-	if(g_Settings_bUseDatabase && g_SysDB_bConnected){
+	if(g_SysDB_bConnected){
 		int size;
 		GetNativeStringLength(1, size);
 		char[] sQuery = new char[size];
@@ -799,7 +788,7 @@ public int Native_DB_Query(Handle plugin, int numParams){
 }
 
 public int Native_DB_TQuery(Handle plugin, int numParams){
-	if(g_Settings_bUseDatabase && g_SysDB_bConnected){
+	if(g_SysDB_bConnected){
 		SQLTCallback callback = view_as<SQLTCallback>GetNativeFunction(1);
 
 		int size;
@@ -854,14 +843,7 @@ public int Native_DB_EscapeString(Handle plugin, int numParams){
 	SetNativeString(3, safeChar, safeSize);
 }
 
-public int Native_DB_UseDatabase(Handle plugin, int numParams){
-	return g_Settings_bUseDatabase;
-}
-
 public int Native_DB_Connected(Handle plugin, int numParams){
-	if(!Sys_UseDatabase())
-		return false;
-
 	return g_SysDB_bConnected;
 }
 

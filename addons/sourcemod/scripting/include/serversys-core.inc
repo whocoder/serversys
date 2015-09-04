@@ -64,13 +64,6 @@ native void Sys_ReloadConfiguration(bool map = true);
 native bool Sys_UseMapConfigs();
 
 /**
-* Checks if Server-Sys has databases setup in configuration.
-*
-* @return               True if in enabled, false otherwise
-*/
-native bool Sys_UseDatabase();
-
-/**
 * Checks if we are currently in between OnMapStart and
 * OnMapEnd. Useful to check if things like the map's name
 * and any other map-specific things are usable.
@@ -187,7 +180,6 @@ public __pl_serversys_core_SetNTVOptional(){
     MarkNativeAsOptional("Sys_IsHideEnabled");
 
     MarkNativeAsOptional("Sys_UseMapConfigs");
-    MarkNativeAsOptional("Sys_UseDatabase");
 
     MarkNativeAsOptional("Sys_InMap");
     MarkNativeAsOptional("Sys_InRound");
