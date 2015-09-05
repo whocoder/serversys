@@ -235,6 +235,7 @@ public __pl_serversys_core_SetNTVOptional(){
     MarkNativeAsOptional("Sys_InMap");
     MarkNativeAsOptional("Sys_InRound");
     MarkNativeAsOptional("Sys_GetPlayerID");
+    MarkNativeAsOptional("Sys_GetClientOfPlayerID");
     MarkNativeAsOptional("Sys_GetServerID");
     MarkNativeAsOptional("Sys_GetMapID");
     MarkNativeAsOptional("Sys_DB_TQuery");
