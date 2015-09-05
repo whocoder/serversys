@@ -980,8 +980,8 @@ public int Native_GetClientOfPlayerID(Handle plugin, int numParams){
 	int playerid = GetNativeCell(1);
 
 	for(int i = 1; i <= MaxClients; i++){
-		if(IsClientConnected(i) && g_bPlayerIDLoaded[i]){
-			return g_iPlayerID[i];
+		if(IsClientConnected(i) && (g_bPlayerIDLoaded[i]) && (g_iPlayerID[i] == playerid)){
+			return i;
 		}
 	}
 
