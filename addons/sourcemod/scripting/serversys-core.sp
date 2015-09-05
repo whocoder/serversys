@@ -87,6 +87,11 @@ bool	g_Settings_bDamage_GM_BetweenRound;
 bool	g_Settings_bDamage_HSOnly;
 
 /**
+* Chat command settings
+*/
+bool	g_Settings_bHideChatCommands;
+
+/**
 * Forward Handles
 */
 Handle	g_hF_Sys_OnDatabaseLoaded;
@@ -239,31 +244,26 @@ void LoadConfig(char[] map_name = ""){
 
 		KvGetString(kv, "server_name", g_Settings_cServerName, sizeof(g_Settings_cServerName), "none");
 
-		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none")){
-			LogError("[serversys] core :: Invalid Server ID or Server Name supplied.");
-		}
+		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none"))
+			SetFailState("[serversys] core :: Invalid Server ID or Server Name supplied.");
 
 		if(KvJumpToKey(kv, "playtime")){
 			g_Settings_bPlayTime = view_as<bool>KvGetNum(kv, "enabled", 0);
 
 			KvGoBack(kv);
-		}
-		else
-		{
+		}else{
 			g_Settings_bPlayTime = false;
 		}
 
 		KvGoBack(kv);
-	}
-	else
+	}else
 		SetFailState("[server-sys] core :: Unable to find database config block");
 
 	if(KvJumpToKey(kv, "mapconfigs")){
 		g_Settings_bMapConfig = view_as<bool>KvGetNum(kv, "enabled", 1);
 
 		KvGoBack(kv);
-	}
-	else
+	}else
 		g_Settings_bMapConfig = false;
 
 	if(KvJumpToKey(kv, "hide")){
@@ -275,8 +275,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_iHideMethod = KvGetNum(kv, "method", HIDE_NORMAL);
 
 		KvGoBack(kv);
-	}
-	else
+	}else
 		g_Settings_bHide = false;
 
 	if(KvJumpToKey(kv, "noblock")){
@@ -285,8 +284,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_iNoBlockMethod = KvGetNum(kv, "method", NOBLOCK_TYPE_COLLISIONGROUP);
 
 		KvGoBack(kv);
-	}
-	else
+	}else
 		g_Settings_bNoBlock = false;
 
 	if(KvJumpToKey(kv, "spawnprotection")){
@@ -297,8 +295,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_fSpawnProtection_Length = KvGetFloat(kv, "length", 5.0);
 
 		KvGoBack(kv);
-	}
-	else
+	}else
 		g_Settings_bSpawnProtection = false;
 
 	if(KvJumpToKey(kv, "damage")){
@@ -307,13 +304,19 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bDamage_HSOnly 			= view_as<bool>KvGetNum(kv, "headshot_only");
 
 		KvGoBack(kv);
-	}
-	else
-	{
+	}else{
 		g_Settings_bDamage_GM = false;
 		g_Settings_bDamage_GM_BetweenRound = false;
 		g_Settings_bDamage_HSOnly = false;
 	}
+
+	if(KvJumpToKey(kv, "commands")){
+		g_Settings_bHideChatCommands 		= view_as<bool>KvGetNum(kv, "hide_commands", 0);
+
+		KvGoBack(kv);
+	}else
+		g_Settings_bHideChatCommands 		= false;
+
 
 	Sys_KillHandle(kv);
 }
@@ -342,6 +345,44 @@ public void OnClientAuthorized(int client, const char[] sauth){
 	Sys_DB_RegisterPlayer(client);
 
 	g_fPlayerJoinTime[client] = GetEngineTime();
+}
+
+public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs){
+	if (!IsClientInGame(client))
+		return Plugin_Continue;
+
+	char sArgsTrimmed[256];
+	int sArgsLen = strlen(sArgs);
+
+	if (sArgsLen >= 2 && sArgs[0] == '"' && sArgs[sArgsLen - 1] == '"')
+		strcopy(sArgsTrimmed, sArgsLen - 1, sArgs[1]);
+	else
+		strcopy(sArgsTrimmed, sizeof(sArgsTrimmed), sArgs);
+
+	char cmds[2][256];
+	ExplodeString(sArgsTrimmed, " ", cmds, sizeof(cmds), sizeof(cmds[]), true);
+
+	if (strlen(cmds[0]) <= 0)
+		return Plugin_Continue;
+
+	for (int i = 0; i < g_iCC_Count; i++)
+	{
+		if (StrEqual(cmds[0], g_cCC_Commands[i], false))
+		{
+			Call_StartFunction(g_hCC_Plugin[i], g_fCC_Callback[i]);
+			Call_PushCell(client);
+			Call_PushString(cmds[0]);
+			Call_PushString(cmds[1]);
+			Call_Finish();
+
+			if (cmds[0][0] == 0x2F || g_Settings_bHideChatCommands)
+				return Plugin_Handled;
+			else
+				return Plugin_Continue;
+		}
+	}
+
+	return Plugin_Continue;
 }
 
 void Sys_DB_Connect(char[] database){
