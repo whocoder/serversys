@@ -118,6 +118,16 @@ native bool Sys_IsHideEnabled(int client);
 native int Sys_GetPlayerID(int client);
 
 /**
+* Gets a client index by searching from PlayerID.
+* This obviously only works if the client of this PID
+* is in-game.
+*
+* @param playerid       PlayerID to search for.
+* @return               Client index or 0.
+*/
+native int Sys_GetClientOfPlayerID(int playerid);
+
+/**
 * Gets the ServerID.
 *
 * @return               ServerID or -1 if not yet loaded (wait for OnServerIDLoaded)

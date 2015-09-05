@@ -189,6 +189,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Sys_InMap", Native_InMap);
 	CreateNative("Sys_InRound", Native_InMap);
 	CreateNative("Sys_GetPlayerID", Native_GetPlayerID);
+	CreateNative("Sys_GetClientOfPlayerID", Native_GetClientOfPlayerID);
 	CreateNative("Sys_GetServerID", Native_GetServerID);
 	CreateNative("Sys_GetMapID", Native_GetMapID);
 
@@ -450,7 +451,7 @@ public void Sys_DB_RegisterMap_CB_CB(Handle owner, Handle hndl, const char[] err
 	char mapname[64];
 	data.ReadString(mapname, sizeof(mapname));
 	CloseHandle(data);
-	
+
 	if(StrEqual(mapname, g_cMapName) && Sys_InMap()){
 		g_iMapID = SQL_FetchInt(hndl, 0);
 
@@ -932,6 +933,18 @@ public int Native_GetPlayerID(Handle plugin, int numParams){
 	}
 
 	return -1;
+}
+
+public int Native_GetClientOfPlayerID(Handle plugin, int numParams){
+	int playerid = GetNativeCell(1);
+
+	for(int i = 1; i <= MaxClients; i++){
+		if(IsClientConnected(i) && g_bPlayerIDLoaded[i]){
+			return g_iPlayerID[i];
+		}
+	}
+
+	return 0;
 }
 
 public int Native_RegisterChatCommand(Handle plugin, int numParams){
