@@ -27,11 +27,13 @@ stock void Sys_KillHandle(Handle hndl){
 * players in the server.
 *
 * @param Team			Optional int to specify a team.
+* @param real			Optional bool to rule out bots and SourceTV
+*							(real clients only)
 */
-stock int Sys_PlayerCount(int Team = -1){
+stock int Sys_PlayerCount(int Team = -1, bool real = false){
 	int count = 0;
 	for(int i = 1; i <= MaxClients; i++){
-		if(IsClientConnected(i) && ((Team != -1) ? (GetClientTeam(i) == Team) : true))
+		if(IsClientConnected(i) && ((Team != -1) ? (GetClientTeam(i) == Team) : true) && ((real != false) ? (!IsFakeClient(i) && !IsClientSourceTV(i)) : (true)))
 			count++;
 	}
 	return count;
