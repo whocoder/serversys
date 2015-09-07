@@ -3,6 +3,12 @@
 #endif
 #define _serversys_core_included
 
+typeset Sys_ChatCommand_CB {
+	function void(int client);
+	function void(int client, const char[] command);
+	function void(int client, const char[] command, const char[] args);
+}
+
 enum {
 	NOBLOCK_TYPE_COLLISIONGROUP = 0,
 	NOBLOCK_TYPE_SOLIDTYPE = 1
@@ -49,6 +55,21 @@ forward void OnServerIDLoaded(int serverID);
 forward void OnPlayerIDLoaded(int client, int playerID);
 
 /**
+* Called after the Map ID is created or selected,
+* which is done when OnMapStart is called. The call
+* SHOULD in theory be prevented if another map change
+* were to suddenly happen before the select query could
+* be transacted, as this checks Sys_InMap() before firing.
+*
+* @param mapid          The ID of the map.
+* @param mapname		The name of the map that the ID corresponds to.
+*/
+forward void OnMapIDLoaded(int mapid, const char[] mapname);
+
+
+
+
+/**
 * Reloads the core plugin's config file.
 *
 * @param map          Whether to load the maps config (if exists)
@@ -62,13 +83,6 @@ native void Sys_ReloadConfiguration(bool map = true);
 * @return               True if enabled, false otherwise.
 */
 native bool Sys_UseMapConfigs();
-
-/**
-* Checks if Server-Sys has databases setup in configuration.
-*
-* @return               True if in enabled, false otherwise
-*/
-native bool Sys_UseDatabase();
 
 /**
 * Checks if we are currently in between OnMapStart and
@@ -104,11 +118,29 @@ native bool Sys_IsHideEnabled(int client);
 native int Sys_GetPlayerID(int client);
 
 /**
+* Gets a client index by searching from PlayerID.
+* This obviously only works if the client of this PID
+* is in-game.
+*
+* @param playerid       PlayerID to search for.
+* @return               Client index or 0.
+*/
+native int Sys_GetClientOfPlayerID(int playerid);
+
+/**
 * Gets the ServerID.
 *
 * @return               ServerID or -1 if not yet loaded (wait for OnServerIDLoaded)
 */
 native int Sys_GetServerID();
+
+/**
+* Gets the MapID. This will return -1 if we are not in
+* a map, or if the MapID has not been loaded yet.
+*
+* @return               MapID or -1
+*/
+native int Sys_GetMapID();
 
 /**
 * Gets a PlayerID using auth (GetSteamAccountID). This
@@ -121,6 +153,20 @@ native int Sys_GetServerID();
 * @return               PlayerID or -1 on failure
 */
 //native int Sys_GetPlayerIDFromAuth(int auth);
+
+
+/**
+* Registers a chat command to the specified callback,
+* credit for this functionality is mostly due to
+* Drixevel's work on SourceMod-Store.
+*
+* @param command        String of commands to check, seperated by space.
+*                           (Ex: '/hey !hey .hey ;;hey');
+* @param callback       Callback to call when command is ran.
+*
+* @return               Whether or not register was successful.
+*/
+native bool Sys_RegisterChatCommand(const char[] command, Sys_ChatCommand_CB callback);
 
 /**
 * Check if the DB is connected.
@@ -183,18 +229,15 @@ public SharedPlugin __pl_serversys_core =
 #if defined REQUIRE_PLUGIN
 public __pl_serversys_core_SetNTVOptional(){
     MarkNativeAsOptional("Sys_ReloadConfiguration");
-
+    MarkNativeAsOptional("Sys_RegisterChatCommand");
     MarkNativeAsOptional("Sys_IsHideEnabled");
-
     MarkNativeAsOptional("Sys_UseMapConfigs");
-    MarkNativeAsOptional("Sys_UseDatabase");
-
     MarkNativeAsOptional("Sys_InMap");
     MarkNativeAsOptional("Sys_InRound");
-
     MarkNativeAsOptional("Sys_GetPlayerID");
-    //MarkNativeAsOptional("Sys_GetPlayerIDFromAuth");
-
+    MarkNativeAsOptional("Sys_GetClientOfPlayerID");
+    MarkNativeAsOptional("Sys_GetServerID");
+    MarkNativeAsOptional("Sys_GetMapID");
     MarkNativeAsOptional("Sys_DB_TQuery");
     MarkNativeAsOptional("Sys_DB_Query");
     MarkNativeAsOptional("Sys_DB_EscapeString");

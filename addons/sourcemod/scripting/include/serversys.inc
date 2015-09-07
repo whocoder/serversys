@@ -7,5 +7,7 @@
 #define SERVERSYS_VERSION "1.0"
 #define SERVERSYS_URL "whocodes.pw"
 
+#define SYS_MAX_COMMANDS 500
+
 #include <serversys-stocks>
 #include <serversys-core>

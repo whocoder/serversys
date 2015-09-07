@@ -22,7 +22,6 @@ bool g_bServerID_Loaded = false;
 /**
 * Database settings
 */
-bool 	g_Settings_bUseDatabase;
 char 	g_Settings_cDatabaseName[32];
 int		g_Settings_iServerID;
 char	g_Settings_cServerName[64];
@@ -88,11 +87,26 @@ bool	g_Settings_bDamage_GM_BetweenRound;
 bool	g_Settings_bDamage_HSOnly;
 
 /**
+* Chat command settings
+*/
+bool	g_Settings_bHideChatCommands;
+
+/**
 * Forward Handles
 */
 Handle	g_hF_Sys_OnDatabaseLoaded;
 Handle	g_hF_Sys_OnServerIDLoaded;
 Handle 	g_hF_Sys_OnPlayerIDLoaded;
+Handle 	g_hF_Sys_OnMapIDLoaded;
+
+/**
+* Chat command functionality
+*/
+Handle g_hCC_Plugin[SYS_MAX_COMMANDS];
+char g_cCC_Commands[SYS_MAX_COMMANDS][32];
+Sys_ChatCommand_CB g_fCC_Callback[SYS_MAX_COMMANDS];
+
+int g_iCC_Count;
 
 /**
 * Server functionality variables
@@ -102,10 +116,12 @@ bool 	g_bLateLoad = false;
 bool 	g_bInMap = false;
 bool	g_bInRound = false;
 
+int		g_iMapID = 0;
+
 bool	g_bPlayerIDLoaded[MAXPLAYERS + 1];
 int		g_iPlayerID[MAXPLAYERS + 1];
 
-float g_fMapStartTime;
+int g_iMapStartTime;
 float g_fPlayerJoinTime[MAXPLAYERS + 1];
 
 bool	g_bPlayTimeLoaded[MAXPLAYERS+1];
@@ -134,15 +150,7 @@ public void OnPluginEnd(){
 * after OnPluginStart
 */
 public void OnAllPluginsLoaded(){
-	if(g_Settings_bUseDatabase){
-		Sys_DB_Connect(g_Settings_cDatabaseName);
-	}
-	else
-	{
-		Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
-		Call_PushCell(false);
-		Call_Finish();
-	}
+	Sys_DB_Connect(g_Settings_cDatabaseName);
 }
 
 public void OnDatabaseLoaded(bool success){
@@ -186,8 +194,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Sys_InMap", Native_InMap);
 	CreateNative("Sys_InRound", Native_InMap);
 	CreateNative("Sys_GetPlayerID", Native_GetPlayerID);
+	CreateNative("Sys_GetClientOfPlayerID", Native_GetClientOfPlayerID);
 	CreateNative("Sys_GetServerID", Native_GetServerID);
-	CreateNative("Sys_UseDatabase", Native_DB_UseDatabase);
+	CreateNative("Sys_GetMapID", Native_GetMapID);
+
+	CreateNative("Sys_RegisterChatCommand", Native_RegisterChatCommand);
 
 	CreateNative("Sys_DB_Connected", Native_DB_Connected);
 	CreateNative("Sys_DB_Query", Native_DB_Query);
@@ -197,6 +208,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	g_hF_Sys_OnDatabaseLoaded = CreateGlobalForward("OnDatabaseLoaded", ET_Event, Param_Cell);
 	g_hF_Sys_OnServerIDLoaded = CreateGlobalForward("OnServerIDLoaded", ET_Event, Param_Cell);
 	g_hF_Sys_OnPlayerIDLoaded = CreateGlobalForward("OnPlayerIDLoaded", ET_Event, Param_Cell, Param_Cell);
+	g_hF_Sys_OnMapIDLoaded	  = CreateGlobalForward("OnMapIDLoaded", 	ET_Event, Param_Cell, Param_String);
 
 	g_bLateLoad = late;
 
@@ -224,8 +236,6 @@ void LoadConfig(char[] map_name = ""){
     }
 
 	if(KvJumpToKey(kv, "database")){
-		g_Settings_bUseDatabase = view_as<bool>KvGetNum(kv, "enabled", 0);
-
 		KvGetString(kv, "name", g_Settings_cDatabaseName, sizeof(g_Settings_cDatabaseName), "serversys");
 
 		g_Settings_iServerID = KvGetNum(kv, "server_id", -1);
@@ -234,32 +244,26 @@ void LoadConfig(char[] map_name = ""){
 
 		KvGetString(kv, "server_name", g_Settings_cServerName, sizeof(g_Settings_cServerName), "none");
 
-		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none")){
-			g_Settings_bUseDatabase = false;
-			LogError("[serversys] core :: Invalid Server ID or Server Name supplied.");
-		}
+		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none"))
+			SetFailState("[serversys] core :: Invalid Server ID or Server Name supplied.");
 
-		if(KvJumpToKey(kv, "playtime") && g_Settings_bUseDatabase){
+		if(KvJumpToKey(kv, "playtime")){
 			g_Settings_bPlayTime = view_as<bool>KvGetNum(kv, "enabled", 0);
 
 			KvGoBack(kv);
-		}
-		else
-		{
+		}else{
 			g_Settings_bPlayTime = false;
 		}
 
 		KvGoBack(kv);
-	}
-	else
-		g_Settings_bUseDatabase = false;
+	}else
+		SetFailState("[server-sys] core :: Unable to find database config block");
 
 	if(KvJumpToKey(kv, "mapconfigs")){
 		g_Settings_bMapConfig = view_as<bool>KvGetNum(kv, "enabled", 1);
 
 		KvGoBack(kv);
-	}
-	else
+	}else
 		g_Settings_bMapConfig = false;
 
 	if(KvJumpToKey(kv, "hide")){
@@ -271,8 +275,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_iHideMethod = KvGetNum(kv, "method", HIDE_NORMAL);
 
 		KvGoBack(kv);
-	}
-	else
+	}else
 		g_Settings_bHide = false;
 
 	if(KvJumpToKey(kv, "noblock")){
@@ -281,8 +284,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_iNoBlockMethod = KvGetNum(kv, "method", NOBLOCK_TYPE_COLLISIONGROUP);
 
 		KvGoBack(kv);
-	}
-	else
+	}else
 		g_Settings_bNoBlock = false;
 
 	if(KvJumpToKey(kv, "spawnprotection")){
@@ -293,8 +295,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_fSpawnProtection_Length = KvGetFloat(kv, "length", 5.0);
 
 		KvGoBack(kv);
-	}
-	else
+	}else
 		g_Settings_bSpawnProtection = false;
 
 	if(KvJumpToKey(kv, "damage")){
@@ -303,13 +304,19 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bDamage_HSOnly 			= view_as<bool>KvGetNum(kv, "headshot_only");
 
 		KvGoBack(kv);
-	}
-	else
-	{
+	}else{
 		g_Settings_bDamage_GM = false;
 		g_Settings_bDamage_GM_BetweenRound = false;
 		g_Settings_bDamage_HSOnly = false;
 	}
+
+	if(KvJumpToKey(kv, "commands")){
+		g_Settings_bHideChatCommands 		= view_as<bool>KvGetNum(kv, "hide_commands", 0);
+
+		KvGoBack(kv);
+	}else
+		g_Settings_bHideChatCommands 		= false;
+
 
 	Sys_KillHandle(kv);
 }
@@ -329,7 +336,7 @@ public void OnClientDisconnect(int client){
 	SDKUnhook(client, SDKHook_TraceAttack, Hook_TraceAttack);
 	SDKUnhook(client, SDKHook_SetTransmit, Hook_SetTransmit);
 
-	if(g_Settings_bUseDatabase && g_Settings_bPlayTime && g_bPlayerIDLoaded[client] && g_bPlayTimeLoaded[client]){
+	if(g_Settings_bPlayTime && g_bPlayerIDLoaded[client] && g_bPlayTimeLoaded[client]){
 		Sys_DB_UpdatePlayTime(client);
 	}
 }
@@ -338,6 +345,44 @@ public void OnClientAuthorized(int client, const char[] sauth){
 	Sys_DB_RegisterPlayer(client);
 
 	g_fPlayerJoinTime[client] = GetEngineTime();
+}
+
+public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs){
+	if (!IsClientInGame(client))
+		return Plugin_Continue;
+
+	char sArgsTrimmed[256];
+	int sArgsLen = strlen(sArgs);
+
+	if (sArgsLen >= 2 && sArgs[0] == '"' && sArgs[sArgsLen - 1] == '"')
+		strcopy(sArgsTrimmed, sArgsLen - 1, sArgs[1]);
+	else
+		strcopy(sArgsTrimmed, sizeof(sArgsTrimmed), sArgs);
+
+	char cmds[2][256];
+	ExplodeString(sArgsTrimmed, " ", cmds, sizeof(cmds), sizeof(cmds[]), true);
+
+	if (strlen(cmds[0]) <= 0)
+		return Plugin_Continue;
+
+	for (int i = 0; i < g_iCC_Count; i++)
+	{
+		if (StrEqual(cmds[0], g_cCC_Commands[i], false))
+		{
+			Call_StartFunction(g_hCC_Plugin[i], g_fCC_Callback[i]);
+			Call_PushCell(client);
+			Call_PushString(cmds[0]);
+			Call_PushString(cmds[1]);
+			Call_Finish();
+
+			if (cmds[0][0] == 0x2F || g_Settings_bHideChatCommands)
+				return Plugin_Handled;
+			else
+				return Plugin_Continue;
+		}
+	}
+
+	return Plugin_Continue;
 }
 
 void Sys_DB_Connect(char[] database){
@@ -351,17 +396,17 @@ void Sys_DB_Connect(char[] database){
 	}
 	else
 	{
-		g_Settings_bUseDatabase = false;
-		Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
-		Call_PushCell(false);
-		Call_Finish();
+		SetFailState("[server-sys] core :: No server-sys database config found in databases.cfg!");
 	}
 }
 
 public void Sys_DB_Connect_CB(Handle owner, Handle hndl, const char[] error, any data){
 	if(g_iSafeConnectCount >= 5){
-		SetFailState("[serversys] core :: Reached connection count without success. Plugin stopped.");
+		Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
+		Call_PushCell(false);
+		Call_Finish();
 
+		SetFailState("[serversys] core :: Reached connection count without success. Plugin stopped.");
 		return;
 	}
 
@@ -411,6 +456,50 @@ public void Sys_DB_RegisterServer_CB(Handle owner, Handle hndl, const char[] err
 	Call_StartForward(g_hF_Sys_OnServerIDLoaded);
 	Call_PushCell(g_Settings_iServerID);
 	Call_Finish();
+}
+
+void Sys_DB_RegisterMap(const char[] mapname){
+	char query[1024];
+	Format(query, sizeof(query), "INSERT INTO maps (name) VALUES ('%s') ON DUPLICATE KEY UPDATE lastplayed = UNIX_TIMESTAMP();", mapname);
+	DataPack pack = new DataPack();
+	pack.WriteString(mapname);
+
+	Sys_DB_TQuery(Sys_DB_RegisterMap_CB, query, pack, DBPrio_High);
+}
+
+public void Sys_DB_RegisterMap_CB(Handle owner, Handle hndl, const char[] error, DataPack data){
+	if(hndl == INVALID_HANDLE){
+		LogError("[serversys] core :: Error on registering map: %s", error);
+		return;
+	}
+	char mapname[64];
+	data.ReadString(mapname, sizeof(mapname));
+	data.Position = data.Position - 1;
+	if(StrEqual(mapname, g_cMapName)){
+		char query[1024];
+		Format(query, sizeof(query), "SELECT id FROM maps WHERE name = '%s'", mapname);
+
+		Sys_DB_TQuery(Sys_DB_RegisterMap_CB_CB, query, data, DBPrio_High);
+	}
+}
+
+public void Sys_DB_RegisterMap_CB_CB(Handle owner, Handle hndl, const char[] error, DataPack data){
+	if(hndl == INVALID_HANDLE){
+		LogError("[serversys] core :: Error on selecting map: %s", error);
+		return;
+	}
+
+	char mapname[64];
+	data.ReadString(mapname, sizeof(mapname));
+	CloseHandle(data);
+
+	if(StrEqual(mapname, g_cMapName) && Sys_InMap()){
+		g_iMapID = SQL_FetchInt(hndl, 0);
+
+		Call_StartForward(g_hF_Sys_OnMapIDLoaded);
+		Call_PushCell(Sys_GetMapID());
+		Call_Finish();
+	}
 }
 
 public void Sys_DB_GenericCallback(Handle owner, Handle hndl, const char[] error, any data){
@@ -731,8 +820,9 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 
 public void OnMapStart(){
 	g_bInMap = true;
-	g_fMapStartTime = GetEngineTime();
+	g_iMapStartTime = GetTime();
 	GetCurrentMap(g_cMapName, sizeof(g_cMapName));
+	Sys_DB_RegisterMap(g_cMapName);
 
 	if(g_Settings_bMapConfig){
 		CreateTimer(0.5, OnMapStart_Timer_LoadConfig);
@@ -740,9 +830,19 @@ public void OnMapStart(){
 }
 
 public void OnMapEnd(){
+	if(Sys_GetMapID() != -1){
+		char query[1024];
+		Format(query, sizeof(query), "UPDATE maps_playtime SET time = time + %d WHERE sid = %d and mid = %d",
+			(GetTime() - g_iMapStartTime), Sys_GetServerID(), Sys_GetMapID());
+
+		Sys_DB_TQuery(Sys_DB_GenericCallback, query);
+	}
 	g_bInMap = false;
+	g_iMapID = 0;
 	Format(g_cMapName, sizeof(g_cMapName), "");
 }
+
+
 
 public Action OnMapStart_Timer_LoadConfig(Handle timer){
 	GetCurrentMap(g_cMapName, sizeof(g_cMapName));
@@ -787,19 +887,24 @@ public int Native_InMap(Handle plugin, int numParams){
 	return g_bInMap;
 }
 
+
+// Returning a handle (really a DBResultSet) required
+// 	some view_as hacky shit. Don't blame me. It compiled
+//	without this hack, but it gave mismatch warnings.
 public int Native_DB_Query(Handle plugin, int numParams){
-	if(g_Settings_bUseDatabase && g_SysDB_bConnected){
+	if(g_SysDB_bConnected){
 		int size;
 		GetNativeStringLength(1, size);
 		char[] sQuery = new char[size];
 		GetNativeString(1, sQuery, size);
 
-		return view_as<DBResultSet>SQL_Query(g_SysDB, sQuery);
+		return view_as<any>SQL_Query(g_SysDB, sQuery);
 	}
+	return view_as<any>INVALID_HANDLE;
 }
 
 public int Native_DB_TQuery(Handle plugin, int numParams){
-	if(g_Settings_bUseDatabase && g_SysDB_bConnected){
+	if(g_SysDB_bConnected){
 		SQLTCallback callback = view_as<SQLTCallback>GetNativeFunction(1);
 
 		int size;
@@ -854,14 +959,7 @@ public int Native_DB_EscapeString(Handle plugin, int numParams){
 	SetNativeString(3, safeChar, safeSize);
 }
 
-public int Native_DB_UseDatabase(Handle plugin, int numParams){
-	return g_Settings_bUseDatabase;
-}
-
 public int Native_DB_Connected(Handle plugin, int numParams){
-	if(!Sys_UseDatabase())
-		return false;
-
 	return g_SysDB_bConnected;
 }
 
@@ -878,9 +976,63 @@ public int Native_GetPlayerID(Handle plugin, int numParams){
 	return -1;
 }
 
+public int Native_GetClientOfPlayerID(Handle plugin, int numParams){
+	int playerid = GetNativeCell(1);
+
+	for(int i = 1; i <= MaxClients; i++){
+		if(IsClientConnected(i) && (g_bPlayerIDLoaded[i]) && (g_iPlayerID[i] == playerid))
+			return i;
+	}
+
+	return 0;
+}
+
+public int Native_RegisterChatCommand(Handle plugin, int numParams){
+	if(g_iCC_Count >= SYS_MAX_COMMANDS)
+		return false;
+
+	char commands[32];
+	GetNativeString(1, commands, sizeof(commands));
+	Sys_ChatCommand_CB callback = view_as<Sys_ChatCommand_CB>GetNativeFunction(2);
+
+	char splitcommands[32][32];
+	int count = ExplodeString(commands, " ", splitcommands, sizeof(splitcommands), sizeof(splitcommands[]));
+
+	// If there's no commands or the amount of commands + our
+	// 	current amount is too much.
+	if((count <= 0) || ((g_iCC_Count + count) >= SYS_MAX_COMMANDS))
+		return false;
+
+	// Check if the command is taken already
+	for(int i = 0; i < g_iCC_Count; i++){
+		for(int n = 0; n < count; n++){
+			if(StrEqual(splitcommands[n], g_cCC_Commands[i], false))
+				return false;
+		}
+	}
+
+	for(int i = 0; i < count; i++){
+		strcopy(g_cCC_Commands[g_iCC_Count], 32, splitcommands[i]);
+		g_hCC_Plugin[g_iCC_Count] = plugin;
+		g_fCC_Callback[g_iCC_Count] = callback;
+
+		g_iCC_Count++;
+	}
+
+	return true;
+}
+
 public int Native_GetServerID(Handle plugin, int numParams){
 	if(!g_bServerID_Loaded)
 		return -1;
 
 	return g_Settings_iServerID;
+}
+
+public int Native_GetMapID(Handle plugin, int numParams){
+	if(g_iMapID == 0 || strlen(g_cMapName) < 1 || !Sys_InMap()){
+		return -1;
+	}
+
+	return g_iMapID;
 }
