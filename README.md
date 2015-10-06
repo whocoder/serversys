@@ -34,7 +34,7 @@ Visit the [Getting Started](https://github.com/whocodes/serversys/wiki/Getting-S
 * [x] Map ID integration
 * [x] Track players play-time for individual servers
 * [x] Custom chat trigger support
-* [ ] Dynamic translations
+* [x] Dynamic translations
 * [ ] Web configuration/management module/application (PHP based option + node/io.js based option)
 * [ ] Game-mode modules (expected modes include timer-based modes like surf, bunnyhop, kz, as well as jailbreak and others)
 * [ ] Bans + Admins modules to replace SourceBans
