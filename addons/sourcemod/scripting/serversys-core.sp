@@ -1,7 +1,8 @@
 #include <sourcemod>
 #include <sdkhooks>
-#include <cstrike>
 #include <smlib>
+#include <cstrike>
+#include <tf2>
 
 #include <serversys>
 
@@ -803,10 +804,22 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 				if(g_bSpawnProtectionGlobal){
 					for(int i = 1; i <= MaxClients; i++){
 						if(IsClientConnected(i) && IsClientInGame(i) && !(IsPlayerAlive(i))){
-							switch(GetClientTeam(i)){
-								case CS_TEAM_T, CS_TEAM_CT:{
-									CS_RespawnPlayer(i);
-									PrintTextChat(i, "You have been respawned.");
+							switch(GetGameType()){
+								case GameType_TF2:{
+									switch(TF2_GetClientTeam(i)){
+										case TFTeam_Blue, TFTeam_Red:{
+											TF2_RespawnPlayer(i);
+											PrintTextChat(i, "You have been respawned.");
+										}
+									}
+								}
+								case GameType_CSGO, GameType_CSS:{
+									switch(GetClientTeam(i)){
+										case CS_TEAM_T, CS_TEAM_CT:{
+											CS_RespawnPlayer(i);
+											PrintTextChat(i, "You have been respawned.");
+										}
+									}
 								}
 							}
 						}

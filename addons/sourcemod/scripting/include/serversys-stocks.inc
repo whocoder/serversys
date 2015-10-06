@@ -7,7 +7,8 @@ static bool s__b_Engine_Checked = false;
 */
 enum SupportedGames {
 	GameType_CSS,
-	GameType_CSGO
+	GameType_CSGO,
+	GameType_TF2
 };
 
 /**
@@ -203,6 +204,9 @@ stock SupportedGames GetGameType(){
 
 		if(engVersion == Engine_CSS)
 			s__i_Engine = GameType_CSS;
+
+		if(engVersion == Engine_TF2)
+			s__i_Engine = GameType_TF2;
 
 		s__b_Engine_Checked = true;
 	}
