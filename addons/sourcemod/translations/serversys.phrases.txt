@@ -1,0 +1,23 @@
+"Phrases"
+{
+	"Temporary protection"
+	{
+		"en"		"You will have temporary spawn protection."
+	}
+
+	"Client will be respawned"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} will be respawned for dying early."
+	}
+
+	"Spawn protection expired"
+	{
+		"en"		"Your spawn protection has expired."
+	}
+
+	"You have respawned"
+	{
+		"en"		"You have been respawned."
+	}
+}

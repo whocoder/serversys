@@ -669,7 +669,7 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBro
 	if(g_Settings_bSpawnProtection){
 		if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_GODMODE){
 			g_bSpawnProtection[client] = true;
-			PrintTextChat(client, "You will have temporary spawn protection.");
+			PrintTextChat(client, "%t", "Temporary protection");
 			CreateTimer(g_Settings_fSpawnProtection_Length, Timer_SpawnProtection, GetClientUserId(client));
 		}
 	}
@@ -756,7 +756,9 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool PreventBro
 
 	if(g_Settings_bSpawnProtection && g_bSpawnProtectionGlobal){
 		if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_RESPAWN){
-			PrintTextChatAll("%N will be respawned for dying early.", client);
+			char name[64];
+			Format(name, sizeof(name), "%N", client);
+			PrintTextChatAll("%t", "Client will be respawned", name);
 		}
 	}
 }
@@ -797,7 +799,7 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 			case SPAWNPROTECT_GODMODE:{
 				if((0 < client <= MaxClients) && IsClientInGame(client) && IsPlayerAlive(client) && g_bSpawnProtection[client]){
 					g_bSpawnProtection[client] = false;
-					PrintTextChat(client, "Your spawn protection has expired.");
+					PrintTextChat(client, "%t", "Spawn protection expired");
 				}
 			}
 			case SPAWNPROTECT_RESPAWN:{
@@ -809,7 +811,7 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 									switch(TF2_GetClientTeam(i)){
 										case TFTeam_Blue, TFTeam_Red:{
 											TF2_RespawnPlayer(i);
-											PrintTextChat(i, "You have been respawned.");
+											PrintTextChat(i, "%t", "You have respawned");
 										}
 									}
 								}
@@ -817,7 +819,7 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 									switch(GetClientTeam(i)){
 										case CS_TEAM_T, CS_TEAM_CT:{
 											CS_RespawnPlayer(i);
-											PrintTextChat(i, "You have been respawned.");
+											PrintTextChat(i, "%t", "You have respawned");
 										}
 									}
 								}
