@@ -39,4 +39,4 @@ script:
 
 after_success:
   - cd compiled
-  - find . -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} ftp://$FTPPATH/$TRAVIS_REPO_SLUG/$TRAVIS_BUILD_NUMBER/{} \;
+  - find . -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} ftp://$FTPPATH/github-sourcemod/$TRAVIS_REPO_SLUG/$TRAVIS_BUILD_NUMBER/{} \;
