@@ -251,7 +251,7 @@ void LoadConfig(char[] map_name = ""){
 			SetFailState("[serversys] core :: Invalid Server ID or Server Name supplied.");
 
 		if(KvJumpToKey(kv, "playtime")){
-			g_Settings_bPlayTime = view_as<bool>KvGetNum(kv, "enabled", 0);
+			g_Settings_bPlayTime = view_as<bool>(KvGetNum(kv, "enabled", 0));
 
 			KvGoBack(kv);
 		}else{
@@ -263,17 +263,17 @@ void LoadConfig(char[] map_name = ""){
 		SetFailState("[server-sys] core :: Unable to find database config block");
 
 	if(KvJumpToKey(kv, "mapconfigs")){
-		g_Settings_bMapConfig = view_as<bool>KvGetNum(kv, "enabled", 1);
+		g_Settings_bMapConfig = view_as<bool>(KvGetNum(kv, "enabled", 1));
 
 		KvGoBack(kv);
 	}else
 		g_Settings_bMapConfig = false;
 
 	if(KvJumpToKey(kv, "hide")){
-		g_Settings_bHide = view_as<bool>KvGetNum(kv, "enabled", 1);
+		g_Settings_bHide = view_as<bool>(KvGetNum(kv, "enabled", 1));
 
-		g_Settings_bHideDead = view_as<bool>KvGetNum(kv, "hide_dead", 1);
-		g_Settings_bHideNoClip = view_as<bool>KvGetNum(kv, "hide_noclip", 0);
+		g_Settings_bHideDead = view_as<bool>(KvGetNum(kv, "hide_dead", 1));
+		g_Settings_bHideNoClip = view_as<bool>(KvGetNum(kv, "hide_noclip", 0));
 
 		g_Settings_iHideMethod = KvGetNum(kv, "method", HIDE_NORMAL);
 
@@ -282,7 +282,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bHide = false;
 
 	if(KvJumpToKey(kv, "noblock")){
-		g_Settings_bNoBlock = view_as<bool>KvGetNum(kv, "enabled", 0);
+		g_Settings_bNoBlock = view_as<bool>(KvGetNum(kv, "enabled", 0));
 
 		g_Settings_iNoBlockMethod = KvGetNum(kv, "method", NOBLOCK_TYPE_COLLISIONGROUP);
 
@@ -291,7 +291,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bNoBlock = false;
 
 	if(KvJumpToKey(kv, "spawnprotection")){
-		g_Settings_bSpawnProtection = view_as<bool>KvGetNum(kv, "enabled", 0);
+		g_Settings_bSpawnProtection = view_as<bool>(KvGetNum(kv, "enabled", 0));
 
 		g_Settings_iSpawnProtection_Method = KvGetNum(kv, "method", SPAWNPROTECT_GODMODE);
 
@@ -302,9 +302,9 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bSpawnProtection = false;
 
 	if(KvJumpToKey(kv, "damage")){
-		g_Settings_bDamage_GM 				= view_as<bool>KvGetNum(kv, "godmode", 0);
-		g_Settings_bDamage_GM_BetweenRound 	= view_as<bool>KvGetNum(kv, "godmode_no_round", 0);
-		g_Settings_bDamage_HSOnly 			= view_as<bool>KvGetNum(kv, "headshot_only");
+		g_Settings_bDamage_GM 				= view_as<bool>(KvGetNum(kv, "godmode", 0));
+		g_Settings_bDamage_GM_BetweenRound 	= view_as<bool>(KvGetNum(kv, "godmode_no_round", 0));
+		g_Settings_bDamage_HSOnly 			= view_as<bool>(KvGetNum(kv, "headshot_only"));
 
 		KvGoBack(kv);
 	}else{
@@ -314,7 +314,7 @@ void LoadConfig(char[] map_name = ""){
 	}
 
 	if(KvJumpToKey(kv, "commands")){
-		g_Settings_bHideChatCommands 		= view_as<bool>KvGetNum(kv, "hide_commands", 0);
+		g_Settings_bHideChatCommands 		= view_as<bool>(KvGetNum(kv, "hide_commands", 0));
 
 		KvGoBack(kv);
 	}else
@@ -915,14 +915,14 @@ public int Native_DB_Query(Handle plugin, int numParams){
 		char[] sQuery = new char[size];
 		GetNativeString(1, sQuery, size);
 
-		return view_as<any>SQL_Query(g_SysDB, sQuery);
+		return view_as<any>(SQL_Query(g_SysDB, sQuery));
 	}
-	return view_as<any>INVALID_HANDLE;
+	return view_as<any>(INVALID_HANDLE);
 }
 
 public int Native_DB_TQuery(Handle plugin, int numParams){
 	if(g_SysDB_bConnected){
-		SQLTCallback callback = view_as<SQLTCallback>GetNativeFunction(1);
+		SQLTCallback callback = view_as<SQLTCallback>(GetNativeFunction(1));
 
 		int size;
 		GetNativeStringLength(2, size);
@@ -946,8 +946,8 @@ public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] er
 {
 	ResetPack(data);
 
-	Handle plugin = view_as<Handle>ReadPackCell(data);
-	SQLTCallback callback = view_as<SQLTCallback>ReadPackFunction(data);
+	Handle plugin = view_as<Handle>(ReadPackCell(data));
+	SQLTCallback callback = view_as<SQLTCallback>(ReadPackFunction(data));
 	any hPack = ReadPackCell(data);
 
 	Sys_KillHandle(data);
@@ -1010,7 +1010,7 @@ public int Native_RegisterChatCommand(Handle plugin, int numParams){
 
 	char commands[32];
 	GetNativeString(1, commands, sizeof(commands));
-	Sys_ChatCommand_CB callback = view_as<Sys_ChatCommand_CB>GetNativeFunction(2);
+	Sys_ChatCommand_CB callback = view_as<Sys_ChatCommand_CB>(GetNativeFunction(2));
 
 	char splitcommands[32][32];
 	int count = ExplodeString(commands, " ", splitcommands, sizeof(splitcommands), sizeof(splitcommands[]));

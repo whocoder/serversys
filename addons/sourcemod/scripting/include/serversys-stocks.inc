@@ -209,5 +209,5 @@ stock SupportedGames GetGameType(){
 
 		s__b_Engine_Checked = true;
 	}
-	return s__i_Engine;
+	return view_as<SupportedGames>(s__i_Engine);
 }
