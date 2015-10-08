@@ -131,6 +131,8 @@ bool	g_bPlayTimeLoaded[MAXPLAYERS+1];
 public void OnPluginStart(){
 	LoadConfig();
 
+	LoadTranslations("serversys.phrases");
+
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 	HookEvent("round_start", Event_RoundStart, EventHookMode_Post);
 	HookEvent("round_end", Event_RoundEnd, EventHookMode_Post);
@@ -756,9 +758,9 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool PreventBro
 
 	if(g_Settings_bSpawnProtection && g_bSpawnProtectionGlobal){
 		if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_RESPAWN){
-			char name[64];
-			Format(name, sizeof(name), "%N", client);
-			PrintTextChatAll("%t", "Client will be respawned", name);
+			char _name[64];
+			Format(_name, sizeof(_name), "%N", client);
+			PrintTextChatAll("%t", "Client will be respawned", _name);
 		}
 	}
 }
@@ -808,7 +810,7 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 						if(IsClientConnected(i) && IsClientInGame(i) && !(IsPlayerAlive(i))){
 							switch(GetGameType()){
 								case GameType_TF2:{
-									switch(TF2_GetClientTeam(i)){
+									switch(GetClientTeam(i)){
 										case TFTeam_Blue, TFTeam_Red:{
 											TF2_RespawnPlayer(i);
 											PrintTextChat(i, "%t", "You have respawned");

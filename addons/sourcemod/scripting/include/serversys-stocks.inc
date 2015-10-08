@@ -1,7 +1,3 @@
-static int s__i_Engine;
-static bool s__b_Engine_Checked = false;
-
-
 /**
 * enum -> GameType
 */
@@ -194,6 +190,9 @@ stock void PrintTextChatObservers(int target, const char[] msg, any ...){
 		EndMessage();
 	}
 }
+
+static int s__i_Engine;
+static SupportedGames s__b_Engine_Checked = false;
 
 stock SupportedGames GetGameType(){
 	if(!s__b_Engine_Checked){
