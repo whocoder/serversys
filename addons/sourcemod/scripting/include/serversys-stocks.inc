@@ -191,8 +191,8 @@ stock void PrintTextChatObservers(int target, const char[] msg, any ...){
 	}
 }
 
-static int s__i_Engine;
-static SupportedGames s__b_Engine_Checked = false;
+static SupportedGames s__i_Engine;
+static bool s__b_Engine_Checked = false;
 
 stock SupportedGames GetGameType(){
 	if(!s__b_Engine_Checked){
@@ -209,5 +209,5 @@ stock SupportedGames GetGameType(){
 
 		s__b_Engine_Checked = true;
 	}
-	return view_as<SupportedGames>s__i_Engine;
+	return s__i_Engine;
 }
