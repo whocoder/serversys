@@ -9,8 +9,10 @@ env:
     - THIS="serversys"
     - INCLUDE=addons/sourcemod/scripting/include/
     - SCRIPTING=addons/sourcemod/scripting/
+    - PLUGINS=addons/sourcemod/plugins
     - SOURCEMOD_MAJOR=1.7
     - SOURCEMOD_MINOR=1.7.3-git5258
+    - SCRIPT=build-env/addons/sourcemod/scripting/compile.sh
 
 before_install:
   - mkdir build-env
@@ -31,12 +33,13 @@ install:
 
 before_script:
   - chmod +rx build-env/addons/sourcemod/scripting/spcomp
-  - chmod +rx build-env/addons/sourcemod/scripting/compile.sh
-  - cd build-env/addons/sourcemod/scripting/
+  - chmod +rx $SCRIPT
 
 script:
-  - ./compile.sh
+  - ./$SCRIPT
 
 after_success:
-  - cd compiled
+  - mkdir $PLUGINS
+  - cp -rv build-env/addons/sourcemod/scripting/compiled/. $PLUGINS
+  - find . -name "build-env" -delete
   - find . -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} ftp://$FTPPATH/github-sourcemod/$TRAVIS_REPO_SLUG/$TRAVIS_BUILD_NUMBER/{} \;
