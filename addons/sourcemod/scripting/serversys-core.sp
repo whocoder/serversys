@@ -67,11 +67,13 @@ int 	g_Settings_iHideMethod;
 bool	g_bHideEnabled[MAXPLAYERS+1] = {false, ...};
 
 /**
-* Spawn protection settings
+* Spawn protection and respawn settings
 */
-bool	g_Settings_bSpawnProtection;
-float	g_Settings_fSpawnProtection_Length;
-int 	g_Settings_iSpawnProtection_Method;
+bool 	g_Settings_bAutoRespawn;
+float 	g_Settings_fAutoRespawnDelay;
+bool	g_Settings_bSpawnProtection = false;
+float	g_Settings_fSpawnProtection_Length = 0.0;
+int 	g_Settings_iSpawnProtection_Method = 0;
 
 /**
 * Spawn protection variables
@@ -290,12 +292,16 @@ void LoadConfig(char[] map_name = ""){
 	}else
 		g_Settings_bNoBlock = false;
 
-	if(KvJumpToKey(kv, "spawnprotection")){
-		g_Settings_bSpawnProtection = view_as<bool>(KvGetNum(kv, "enabled", 0));
+	if(KvJumpToKey(kv, "spawning")){
+		g_Settings_bAutoRespawn = view_as<bool>(KvGetNum(kv, "auto-respawn", 0));
 
-		g_Settings_iSpawnProtection_Method = KvGetNum(kv, "method", SPAWNPROTECT_GODMODE);
+		g_Settings_fAutoRespawnDelay = view_as<bool>(KvGetFloat(kv, "auto-respawn-delay", 0.0));
 
-		g_Settings_fSpawnProtection_Length = KvGetFloat(kv, "length", 5.0);
+		g_Settings_bSpawnProtection = view_as<bool>(KvGetNum(kv, "spawnprotection", 0));
+
+		g_Settings_iSpawnProtection_Method = KvGetNum(kv, "spawnprotection-method", SPAWNPROTECT_GODMODE);
+
+		g_Settings_fSpawnProtection_Length = KvGetFloat(kv, "spawnprotection-length", 5.0);
 
 		KvGoBack(kv);
 	}else

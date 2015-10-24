@@ -20,6 +20,59 @@ stock void Sys_KillHandle(Handle hndl){
 }
 
 /**
+* Used to get a clients velocity.
+* Credit for this code to blacky.
+*
+* @param client			Client to get info for
+* @param useX			Whether or not to account for x-axis velocity.
+* @param useY			Whether or not to account for y-axis velocity.
+* @param useZ			Whether or not to account for z-axis velocity.
+*/
+stock float Sys_GetVelocity(int client, bool useX = true, bool useY = true, bool useZ = true){
+	float vel[3];
+
+	if(useX) vel[0] = GetEntPropFloat(client, Prop_Send, "m_vecVelocity[0]");
+	if(useY) vel[1] = GetEntPropFloat(client, Prop_Send, "m_vecVelocity[1]");
+	if(useZ) vel[2] = GetEntPropFloat(client, Prop_Send, "m_vecVelocity[2]");
+
+	return GetVectorLength(vel);
+}
+
+/**
+* Vector angles, function by blacky.
+*
+* @param vel
+* @param angles
+*/
+stock void VectorAngles(float vel[3], float angles[3]){
+	float tmp, float yaw, float pitch;
+
+	if (vel[1] == 0 && vel[0] == 0)
+	{
+		yaw = 0.0;
+		if (vel[2] > 0)
+			pitch = 270.0;
+		else
+			pitch = 90.0;
+	}
+	else
+	{
+		yaw = (ArcTangent2(vel[1], vel[0]) * (180 / 3.141593));
+		if (yaw < 0)
+			yaw += 360;
+
+		tmp = SquareRoot(vel[0]*vel[0] + vel[1]*vel[1]);
+		pitch = (ArcTangent2(-vel[2], tmp) * (180 / 3.141593));
+		if (pitch < 0)
+			pitch += 360;
+	}
+
+	angles[0] = pitch;
+	angles[1] = yaw;
+	angles[2] = 0.0;
+}
+
+/**
 * Used to get the amount of connected
 * players in the server.
 *
