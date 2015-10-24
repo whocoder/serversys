@@ -469,7 +469,7 @@ public void Sys_DB_RegisterServer_CB(Handle owner, Handle hndl, const char[] err
 
 void Sys_DB_RegisterMap(const char[] mapname){
 	char query[1024];
-	Format(query, sizeof(query), "INSERT INTO maps (name) VALUES ('%s') ON DUPLICATE KEY UPDATE lastplayed = UNIX_TIMESTAMP();", mapname);
+	Format(query, sizeof(query), "INSERT INTO maps (name, game) VALUES ('%s', %d) ON DUPLICATE KEY UPDATE lastplayed = UNIX_TIMESTAMP();", mapname, view_as<int>(GetEngineVersion()));
 	DataPack pack = new DataPack();
 	pack.WriteString(mapname);
 
@@ -486,7 +486,7 @@ public void Sys_DB_RegisterMap_CB(Handle owner, Handle hndl, const char[] error,
 	data.Position = data.Position - 1;
 	if(StrEqual(mapname, g_cMapName)){
 		char query[1024];
-		Format(query, sizeof(query), "SELECT id FROM maps WHERE name = '%s'", mapname);
+		Format(query, sizeof(query), "SELECT id FROM maps WHERE name = '%s' AND game = %d", mapname, view_as<int>(GetEngineVersion()));
 
 		Sys_DB_TQuery(Sys_DB_RegisterMap_CB_CB, query, data, DBPrio_High);
 	}
