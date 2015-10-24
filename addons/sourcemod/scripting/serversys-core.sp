@@ -855,8 +855,8 @@ public void OnMapStart(){
 public void OnMapEnd(){
 	if(Sys_GetMapID() != -1){
 		char query[1024];
-		Format(query, sizeof(query), "UPDATE maps_playtime SET time = time + %d WHERE sid = %d and mid = %d",
-			(GetTime() - g_iMapStartTime), Sys_GetServerID(), Sys_GetMapID());
+		Format(query, sizeof(query), "INSERT INTO maptime (sid, mid) VALUES (%d, %d) ON DUPLICATE KEY UPDATE time = time + %d;",
+			Sys_GetServerID(), Sys_GetMapID(), (GetTime() - g_iMapStartTime));
 
 		Sys_DB_TQuery(Sys_DB_GenericCallback, query);
 	}

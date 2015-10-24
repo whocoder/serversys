@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS `playtime` (
   `time` bigint(20) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `maps_playtime` (
+CREATE TABLE IF NOT EXISTS `maptime` (
   `row` int(11) NOT NULL,
   `mid` int(11) NOT NULL,
   `sid` int(11) NOT NULL,
@@ -48,7 +48,7 @@ ALTER TABLE `users`
 ALTER TABLE `playtime`
   ADD PRIMARY KEY (`row`), ADD KEY `row` (`row`), ADD KEY `pid` (`pid`), ADD KEY `sid` (`sid`), ADD KEY `time` (`time`), ADD INDEX(`row`), ADD INDEX(`pid`), ADD INDEX(`sid`), ADD INDEX(`time`);
 
-ALTER TABLE `maps_playtime`
+ALTER TABLE `maptime`
   ADD PRIMARY KEY (`row`), ADD KEY `row` (`row`), ADD KEY `mid` (`mid`), ADD KEY `sid` (`sid`), ADD KEY `time` (`time`), ADD INDEX(`row`), ADD INDEX(`mid`), ADD INDEX(`sid`), ADD INDEX(`time`);
 
 ALTER TABLE `maps`
@@ -66,5 +66,5 @@ ALTER TABLE `playtime`
 ALTER TABLE `maps`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
-ALTER TABLE `maps_playtime`
+ALTER TABLE `maptime`
   MODIFY `row` int(11) NOT NULL AUTO_INCREMENT;
