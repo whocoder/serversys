@@ -135,6 +135,24 @@ native int Sys_GetClientOfPlayerID(int playerid);
 native int Sys_GetServerID();
 
 /**
+* Gets the name of the current server. This is based off
+* of the value defined in core.cfg
+*
+* @param buffer         Buffer to store name in.
+* @param maxlen         Max length of buffer.
+*/
+native void Sys_GetServerName(char[] buffer, int maxlen);
+
+/**
+* Gets the IP of the current server. This is based off
+* of the value defined in core.cfg
+*
+* @param buffer         Buffer to store IP in.
+* @param maxlen         Max length of buffer.
+*/
+native void Sys_GetServerIP(char[] buffer, int maxlen);
+
+/**
 * Gets the MapID. This will return -1 if we are not in
 * a map, or if the MapID has not been loaded yet.
 *
@@ -237,6 +255,8 @@ public __pl_serversys_core_SetNTVOptional(){
     MarkNativeAsOptional("Sys_GetPlayerID");
     MarkNativeAsOptional("Sys_GetClientOfPlayerID");
     MarkNativeAsOptional("Sys_GetServerID");
+    MarkNativeAsOptional("Sys_GetServerName");
+    MarkNativeAsOptional("Sys_GetServerIP");
     MarkNativeAsOptional("Sys_GetMapID");
     MarkNativeAsOptional("Sys_DB_TQuery");
     MarkNativeAsOptional("Sys_DB_Query");

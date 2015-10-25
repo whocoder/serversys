@@ -4,7 +4,7 @@
 #define _serversys_included
 
 
-#define SERVERSYS_VERSION "1.0"
+#define SERVERSYS_VERSION "0.01"
 #define SERVERSYS_URL "whocodes.pw"
 
 #define SYS_MAX_COMMANDS 500

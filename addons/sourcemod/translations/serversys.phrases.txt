@@ -20,4 +20,10 @@
 	{
 		"en"		"You have been respawned."
 	}
+
+	"Hide toggled"
+	{
+		"#format"	"{1:s}"
+		"en"		"Hide players: {1}"
+	}
 }

@@ -24,6 +24,7 @@ We expect this library of modules to expand soon.
 ## Requirements
 * [SourceMod](https://github.com/alliedmodders/sourcemod) 1.7+ by @alliedmodders (visit [alliedmods.net](http://alliedmods.net))
 * [SMLib](http://github.com/bcserv/smlib/) by @bcserv
+* An SQL server (we do not intend to support SQLite)
 
 ## Installation
 Visit the [Getting Started](https://github.com/whocodes/serversys/wiki/Getting-Started) page in the Wiki for a tutorial on installation.

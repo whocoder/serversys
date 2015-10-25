@@ -87,7 +87,8 @@ int		g_iSafeConnectCount = 1;
 */
 bool	g_Settings_bDamage_GM;
 bool	g_Settings_bDamage_GM_BetweenRound;
-bool	g_Settings_bDamage_HSOnly;
+bool	g_Settings_bDamage_HSOnlyRounds;
+float 	g_Settings_fDamage_HSOnlyRoundPer;
 
 /**
 * Chat command settings
@@ -119,7 +120,11 @@ bool 	g_bLateLoad = false;
 bool 	g_bInMap = false;
 bool	g_bInRound = false;
 
+bool 	g_bHSOnlyRound;
+
 int		g_iMapID = 0;
+
+int 	g_iHeadGroup = 1;
 
 bool	g_bPlayerIDLoaded[MAXPLAYERS + 1];
 int		g_iPlayerID[MAXPLAYERS + 1];
@@ -133,6 +138,7 @@ bool	g_bPlayTimeLoaded[MAXPLAYERS+1];
 public void OnPluginStart(){
 	LoadConfig();
 
+	LoadTranslations("common.phrases");
 	LoadTranslations("serversys.phrases");
 
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
@@ -148,6 +154,39 @@ public void OnPluginEnd(){
 	UnhookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
 }
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	RegPluginLibrary("serversys");
+
+	CreateNative("Sys_UseMapConfigs", Native_UseMapConfigs);
+	CreateNative("Sys_IsHideEnabled", Native_IsHideEnabled);
+	CreateNative("Sys_ReloadConfiguration", Native_ReloadConfiguration);
+	CreateNative("Sys_InMap", Native_InMap);
+	CreateNative("Sys_InRound", Native_InMap);
+	CreateNative("Sys_GetPlayerID", Native_GetPlayerID);
+	CreateNative("Sys_GetClientOfPlayerID", Native_GetClientOfPlayerID);
+	CreateNative("Sys_GetServerID", Native_GetServerID);
+	CreateNative("Sys_GetServerName", Native_GetServerName);
+	CreateNative("Sys_GetServerIP", Native_GetServerIP);
+	CreateNative("Sys_GetMapID", Native_GetMapID);
+
+	CreateNative("Sys_RegisterChatCommand", Native_RegisterChatCommand);
+
+	CreateNative("Sys_DB_Connected", Native_DB_Connected);
+	CreateNative("Sys_DB_Query", Native_DB_Query);
+	CreateNative("Sys_DB_TQuery", Native_DB_TQuery);
+	CreateNative("Sys_DB_EscapeString", Native_DB_EscapeString);
+
+	g_hF_Sys_OnDatabaseLoaded = CreateGlobalForward("OnDatabaseLoaded", ET_Event, Param_Cell);
+	g_hF_Sys_OnServerIDLoaded = CreateGlobalForward("OnServerIDLoaded", ET_Event, Param_Cell);
+	g_hF_Sys_OnPlayerIDLoaded = CreateGlobalForward("OnPlayerIDLoaded", ET_Event, Param_Cell, Param_Cell);
+	g_hF_Sys_OnMapIDLoaded	  = CreateGlobalForward("OnMapIDLoaded", 	ET_Event, Param_Cell, Param_String);
+
+	g_bLateLoad = late;
+
+	return APLRes_Success;
+}
+
 /**
 * OnAllPluginsLoaded is called once per every plugin,
 * once all plugins have been initially loaded.
@@ -156,6 +195,7 @@ public void OnPluginEnd(){
 */
 public void OnAllPluginsLoaded(){
 	Sys_DB_Connect(g_Settings_cDatabaseName);
+	Sys_RegisterChatCommand(g_Settings_cHideCommand, Command_ToggleHide);
 }
 
 public void OnDatabaseLoaded(bool success){
@@ -189,35 +229,11 @@ public void OnPlayerIDLoaded(int client, int playerID){
 	Sys_DB_RegisterPlayTime(client);
 }
 
-public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
-{
-	RegPluginLibrary("serversys");
+public void OnClientCookiesCached(int client){
+	char enabled[16];
+	GetClientCookie(client, Hide_Cookie, enabled, sizeof(enabled));
 
-	CreateNative("Sys_UseMapConfigs", Native_UseMapConfigs);
-	CreateNative("Sys_IsHideEnabled", Native_IsHideEnabled);
-	CreateNative("Sys_ReloadConfiguration", Native_ReloadConfiguration);
-	CreateNative("Sys_InMap", Native_InMap);
-	CreateNative("Sys_InRound", Native_InMap);
-	CreateNative("Sys_GetPlayerID", Native_GetPlayerID);
-	CreateNative("Sys_GetClientOfPlayerID", Native_GetClientOfPlayerID);
-	CreateNative("Sys_GetServerID", Native_GetServerID);
-	CreateNative("Sys_GetMapID", Native_GetMapID);
-
-	CreateNative("Sys_RegisterChatCommand", Native_RegisterChatCommand);
-
-	CreateNative("Sys_DB_Connected", Native_DB_Connected);
-	CreateNative("Sys_DB_Query", Native_DB_Query);
-	CreateNative("Sys_DB_TQuery", Native_DB_TQuery);
-	CreateNative("Sys_DB_EscapeString", Native_DB_EscapeString);
-
-	g_hF_Sys_OnDatabaseLoaded = CreateGlobalForward("OnDatabaseLoaded", ET_Event, Param_Cell);
-	g_hF_Sys_OnServerIDLoaded = CreateGlobalForward("OnServerIDLoaded", ET_Event, Param_Cell);
-	g_hF_Sys_OnPlayerIDLoaded = CreateGlobalForward("OnPlayerIDLoaded", ET_Event, Param_Cell, Param_Cell);
-	g_hF_Sys_OnMapIDLoaded	  = CreateGlobalForward("OnMapIDLoaded", 	ET_Event, Param_Cell, Param_String);
-
-	g_bLateLoad = late;
-
-	return APLRes_Success;
+	g_bHideEnabled[client] = view_as<bool>(StringToInt(enabled));
 }
 
 void LoadConfig(char[] map_name = ""){
@@ -243,16 +259,16 @@ void LoadConfig(char[] map_name = ""){
 	if(KvJumpToKey(kv, "database")){
 		KvGetString(kv, "name", g_Settings_cDatabaseName, sizeof(g_Settings_cDatabaseName), "serversys");
 
-		g_Settings_iServerID = KvGetNum(kv, "server_id", -1);
+		g_Settings_iServerID = KvGetNum(kv, "server-id", -1);
 
-		KvGetString(kv, "server_ip", g_Settings_cServerIP, sizeof(g_Settings_cServerIP), "127.0.0.1");
+		KvGetString(kv, "server-ip", g_Settings_cServerIP, sizeof(g_Settings_cServerIP), "127.0.0.1");
 
-		KvGetString(kv, "server_name", g_Settings_cServerName, sizeof(g_Settings_cServerName), "none");
+		KvGetString(kv, "server-name", g_Settings_cServerName, sizeof(g_Settings_cServerName), "none");
 
 		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none"))
 			SetFailState("[serversys] core :: Invalid Server ID or Server Name supplied.");
 
-		if(KvJumpToKey(kv, "playtime")){
+		if(KvJumpToKey(kv, "playtime-tracking")){
 			g_Settings_bPlayTime = view_as<bool>(KvGetNum(kv, "enabled", 0));
 
 			KvGoBack(kv);
@@ -274,8 +290,8 @@ void LoadConfig(char[] map_name = ""){
 	if(KvJumpToKey(kv, "hide")){
 		g_Settings_bHide = view_as<bool>(KvGetNum(kv, "enabled", 1));
 
-		g_Settings_bHideDead = view_as<bool>(KvGetNum(kv, "hide_dead", 1));
-		g_Settings_bHideNoClip = view_as<bool>(KvGetNum(kv, "hide_noclip", 0));
+		g_Settings_bHideDead = view_as<bool>(KvGetNum(kv, "hide-dead", 1));
+		g_Settings_bHideNoClip = view_as<bool>(KvGetNum(kv, "hide-noclip", 0));
 
 		g_Settings_iHideMethod = KvGetNum(kv, "method", HIDE_NORMAL);
 
@@ -308,19 +324,34 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bSpawnProtection = false;
 
 	if(KvJumpToKey(kv, "damage")){
-		g_Settings_bDamage_GM 				= view_as<bool>(KvGetNum(kv, "godmode", 0));
-		g_Settings_bDamage_GM_BetweenRound 	= view_as<bool>(KvGetNum(kv, "godmode_no_round", 0));
-		g_Settings_bDamage_HSOnly 			= view_as<bool>(KvGetNum(kv, "headshot_only"));
+		if(KvJumpToKey(kv, "godmode")){
+			g_Settings_bDamage_GM 				= view_as<bool>(KvGetNum(kv, "enabled", 0));
+			g_Settings_bDamage_GM_BetweenRound 	= view_as<bool>(KvGetNum(kv, "between-round", 0));
+
+			KvGoBack(kv);
+		}else{
+			g_Settings_bDamage_GM = false;
+			g_Settings_bDamage_GM_BetweenRound = false;
+		}
+
+		if(KvJumpToKey(kv, "headshot-rounds")){
+			g_Settings_bDamage_HSOnlyRounds		= view_as<bool>(KvGetNum(kv, "enabled", 0));
+			g_Settings_fDamage_HSOnlyRoundPer	= KvGetFloat(kv, "percent", 10.0);
+			g_iHeadGroup						= KvGetNum(kv, "hitgroup", 1);
+
+		}else{
+			g_Settings_bDamage_HSOnlyRounds = false;
+		}
 
 		KvGoBack(kv);
 	}else{
 		g_Settings_bDamage_GM = false;
 		g_Settings_bDamage_GM_BetweenRound = false;
-		g_Settings_bDamage_HSOnly = false;
+		g_Settings_bDamage_HSOnlyRounds = false;
 	}
 
 	if(KvJumpToKey(kv, "commands")){
-		g_Settings_bHideChatCommands 		= view_as<bool>(KvGetNum(kv, "hide_commands", 0));
+		g_Settings_bHideChatCommands 		= view_as<bool>(KvGetNum(kv, "hide-commands", 0));
 
 		KvGoBack(kv);
 	}else
@@ -354,6 +385,12 @@ public void OnClientAuthorized(int client, const char[] sauth){
 	Sys_DB_RegisterPlayer(client);
 
 	g_fPlayerJoinTime[client] = GetEngineTime();
+}
+
+public void Command_ToggleHide(int client, const char[] command, const char[] args){
+	g_bHideEnabled[client] = !(g_bHideEnabled[client]);
+
+	PrintTextChat("%t%t", "Hide toggled", (g_bHideEnabled[client] ? "On" : "Off"));
 }
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs){
@@ -741,12 +778,10 @@ public Action Hook_TraceAttack(int victim, int &attacker, int &inflictor, float 
 	*	hitgroup is not 1 (head).
 	*/
 
-	if(g_Settings_bDamage_HSOnly){
-		if((0 < victim <= MaxClients) && (0 < attacker <= MaxClients)){
-			if(IsClientInGame(victim) && IsClientInGame(attacker)){
-				if(hitgroup != 1)
-					return Plugin_Handled;
-			}
+	if(g_bHSOnlyRound){
+		if((0 < victim <= MaxClients) && (0 < attacker <= MaxClients) && IsClientInGame(victim) && IsClientInGame(attacker)){
+			if(hitgroup != g_iHeadGroup)
+				return Plugin_Handled;
 		}
 	}
 
@@ -785,6 +820,22 @@ public Action Event_RoundStart(Handle event, const char[] name, bool PreventBroa
 	{
 		if(g_bSpawnProtectionGlobal != false){
 			g_bSpawnProtectionGlobal = false;
+		}
+	}
+
+	/*
+	*	Manage our round-based headshot rounds. If last round was HS-only,
+	*	this round is automatically not. Elsewise, if 24/7 HS-only mode is off,
+	*	there's possibility for a headshot round.
+	*/
+
+	if(g_bHSOnlyRound){
+		g_bHSOnlyRound = false;
+	}else{
+		if(g_Settings_bDamage_HSOnlyRounds){
+			if((g_Settings_fDamage_HSOnlyRoundPer >= 100.0) || (GetRandomFloat(0.0, 100.0) <= g_Settings_fDamage_HSOnlyRoundPer)){
+				g_bHSOnlyRound = true;
+			}
 		}
 	}
 }
@@ -1050,6 +1101,20 @@ public int Native_GetServerID(Handle plugin, int numParams){
 		return -1;
 
 	return g_Settings_iServerID;
+}
+
+public void Native_GetServerName(Handle plugin, int numParams){
+	int len = GetNativeCell(2);
+	char[] buff = new char[len];
+	Format(buff, len, "%s", g_Settings_cServerName);
+	SetNativeString(1, buff, len);
+}
+
+public void Native_GetServerIP(Handle plugin, int numParams){
+	int len = GetNativeCell(2);
+	char[] buff = new char[len];
+	Format(buff, len, "%s", g_Settings_cServerIP);
+	SetNativeString(1, buff, len);
 }
 
 public int Native_GetMapID(Handle plugin, int numParams){
