@@ -57,6 +57,7 @@ int 	g_Settings_iNoBlockMethod;
 * Hide settings
 */
 bool 	g_Settings_bHide;
+bool	g_Settings_bHideAlways;
 bool 	g_Settings_bHideDead;
 bool 	g_Settings_bHideNoClip;
 int 	g_Settings_iHideMethod;
@@ -286,6 +287,8 @@ void LoadConfig(char[] map_name = ""){
 	if(KvJumpToKey(kv, "hide")){
 		g_Settings_bHide = view_as<bool>(KvGetNum(kv, "enabled", 1));
 
+		g_Settings_bHideAlways = view_as<bool>(KvGetNum(kv, "always", 0));
+
 		g_Settings_bHideDead = view_as<bool>(KvGetNum(kv, "hide-dead", 1));
 		g_Settings_bHideNoClip = view_as<bool>(KvGetNum(kv, "hide-noclip", 0));
 
@@ -386,10 +389,10 @@ public void OnClientAuthorized(int client, const char[] sauth){
 }
 
 public void Command_ToggleHide(int client, const char[] command, const char[] args){
-	if(strlen(g_Settings_cHideCommand) > 0){
+	if(strlen(g_Settings_cHideCommand) > 0 && g_Settings_bHide && !g_Settings_bHideAlways){
 		g_bHideEnabled[client] = !(g_bHideEnabled[client]);
 
-		PrintTextChat("%t%t", "Hide toggled", (g_bHideEnabled[client] ? "enabled" : "disabled"));
+		PrintTextChat(client, "%t%t", "Hide toggled", (g_bHideEnabled[client] ? "enabled" : "disabled"));
 	}
 }
 
@@ -723,7 +726,7 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBro
 public Action Hook_SetTransmit(int entity, int client){
 	if(g_Settings_bHide){
 		if(entity != client && (0 < entity <= MaxClients) && IsPlayerAlive(client)){
-			if(g_bHideEnabled[client]){
+			if(g_bHideEnabled[client] || g_Settings_bHideAlways){
 				switch(g_Settings_iHideMethod){
 					case HIDE_NORMAL:{
 						return Plugin_Handled;
@@ -739,8 +742,6 @@ public Action Hook_SetTransmit(int entity, int client){
 
 			if(g_Settings_bHideNoClip && (GetEntityMoveType(entity) == MOVETYPE_NOCLIP))
 				return Plugin_Handled;
-			else
-				return Plugin_Continue;
 		}
 	}
 
@@ -926,6 +927,9 @@ public Action OnMapStart_Timer_LoadConfig(Handle timer){
 public int Native_IsHideEnabled(Handle plugin, int numParams){
 	if(!g_Settings_bHide)
 		return false;
+
+	if(g_Settings_bHideAlways)
+		return true;
 
 	int client 		= GetNativeCell(1);
 
