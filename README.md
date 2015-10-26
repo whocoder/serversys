@@ -17,7 +17,7 @@ SourceMod Server-Sys is a simple, yet advanced server configuration system. For 
 
 ## Supported Modules
 * [Ads](#) - Advertisements from SQL, featuring ability for users to toggle their display (!ads or /ads)
-* [Reports](https://github.com/whocodes/serversys-demos) - Auto-demo recording, all demos saved to SQL and uploaded to FTP. Support for player vs player reports (!report or /report) which are linked to the recording.
+* [Demos & Reports](https://github.com/whocodes/serversys-demos) - Auto-demo recording, all demos saved to SQL and uploaded to FTP. Support for player vs player reports (!report or /report) which are linked to the recording.
 
 We expect this library of modules to expand soon.
 
