@@ -1,10 +1,13 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <smlib>
-#include <cstrike>
-#include <tf2>
 
 #include <serversys>
+
+#undef REQUIRE_EXTENSIONS
+#include <cstrike>
+#include <tf2>
+#define REQUIRE_EXTENSIONS
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -19,6 +22,10 @@ public Plugin myinfo = {
 
 bool g_bServerID_Loaded = false;
 
+/**
+* General settings
+*/
+bool 	g_Settings_bTeamOverride;
 
 /**
 * Database settings
@@ -148,6 +155,9 @@ public void OnPluginStart(){
 	HookEvent("round_start", Event_RoundStart, EventHookMode_Post);
 	HookEvent("round_end", Event_RoundEnd, EventHookMode_Post);
 	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
+
+	AddCommandListener(Command_JoinTeam, "jointeam");
+	AddCommandListener(Command_JoinTeam, "spectate");
 }
 
 public void OnPluginEnd(){
@@ -253,7 +263,7 @@ void LoadConfig(char[] map_name = ""){
 		SetFailState("[serversys] core :: Cannot read from configuration file: %s", Config_Path);
     }
 
-	if(KvJumpToKey(kv, "database")){
+	if(KvJumpToKey(kv, "core")){
 		KvGetString(kv, "name", g_Settings_cDatabaseName, sizeof(g_Settings_cDatabaseName), "serversys");
 
 		g_Settings_iServerID = KvGetNum(kv, "server-id", -1);
@@ -265,6 +275,8 @@ void LoadConfig(char[] map_name = ""){
 		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none"))
 			SetFailState("[serversys] core :: Invalid Server ID or Server Name supplied.");
 
+		g_Settings_bTeamOverride = view_as<bool>(KvGetNum(kv, "team-override", 0));
+
 		if(KvJumpToKey(kv, "playtime-tracking")){
 			g_Settings_bPlayTime = view_as<bool>(KvGetNum(kv, "enabled", 0));
 
@@ -275,7 +287,7 @@ void LoadConfig(char[] map_name = ""){
 
 		KvGoBack(kv);
 	}else
-		SetFailState("[server-sys] core :: Unable to find database config block");
+		SetFailState("[server-sys] core :: Unable to find core config block");
 
 	if(KvJumpToKey(kv, "mapconfigs")){
 		g_Settings_bMapConfig = view_as<bool>(KvGetNum(kv, "enabled", 1));
@@ -288,6 +300,8 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bHide = view_as<bool>(KvGetNum(kv, "enabled", 1));
 
 		g_Settings_bHideAlways = view_as<bool>(KvGetNum(kv, "always", 0));
+
+		g_Settings_bHideAlways_Everything = view_as<bool>(KvGetNum(kv, "always-everything", 0));
 
 		g_Settings_bHideDead = view_as<bool>(KvGetNum(kv, "hide-dead", 1));
 		g_Settings_bHideNoClip = view_as<bool>(KvGetNum(kv, "hide-noclip", 0));
@@ -723,8 +737,40 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBro
 	}
 }
 
+public Action Command_JoinTeam(int client, const char[] command, int argc){
+	if(g_Settings_bTeamOverride){
+		if(StrEqual(command, "jointeam")){
+			char sArg[192];
+			GetCmdArgString(sArg, sizeof(sArg));
+
+			int team = StringToInt(sArg);
+
+			switch(team){
+				case CS_TEAM_T, CS_TEAM_CT:{
+					CS_SwitchTeam(client, team);
+					CS_RespawnPlayer(client);
+				}
+				case CS_TEAM_SPECTATOR:{
+					ForcePlayerSuicide(client);
+					ChangeClientTeam(client, CS_TEAM_SPECTATOR);
+				}
+			}
+		}else{ // 'spectate'
+			ForcePlayerSuicide(client);
+			ChangeClientTeam(client, CS_TEAM_SPECTATOR);
+		}
+
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
+}
+
+
 public Action Hook_SetTransmit(int entity, int client){
 	if(g_Settings_bHide){
+		if(g_Settings_bHideAlways && g_Settings_bHideAlways_Everything)
+			return Plugin_Handled;
+		
 		if(entity != client && (0 < entity <= MaxClients) && IsPlayerAlive(client)){
 			if(g_bHideEnabled[client] || g_Settings_bHideAlways){
 				switch(g_Settings_iHideMethod){
