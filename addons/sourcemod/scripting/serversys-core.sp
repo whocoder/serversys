@@ -525,7 +525,7 @@ public void Sys_DB_RegisterServer_CB(Handle owner, Handle hndl, const char[] err
 void Sys_DB_RegisterMap(const char[] mapname){
 	char query[1024];
 	Format(query, sizeof(query), "INSERT INTO maps (name, game) VALUES ('%s', %d) ON DUPLICATE KEY UPDATE lastplayed = UNIX_TIMESTAMP();", mapname, view_as<int>(GetEngineVersion()));
-	DataPack pack = new DataPack();
+	DataPack pack = CreateDataPack();
 	pack.WriteString(mapname);
 
 	Sys_DB_TQuery(Sys_DB_RegisterMap_CB, query, pack, DBPrio_High);
@@ -537,11 +537,11 @@ public void Sys_DB_RegisterMap_CB(Handle owner, Handle hndl, const char[] error,
 		return;
 	}
 	char mapname[64];
+	data.Reset();
 	data.ReadString(mapname, sizeof(mapname));
-	data.Position = data.Position - 1;
 	if(StrEqual(mapname, g_cMapName)){
 		char query[1024];
-		Format(query, sizeof(query), "SELECT id FROM maps WHERE name = '%s' AND game = %d", mapname, view_as<int>(GetEngineVersion()));
+		Format(query, sizeof(query), "SELECT id FROM maps WHERE name = '%s' AND game = %d;", mapname, view_as<int>(GetEngineVersion()));
 
 		Sys_DB_TQuery(Sys_DB_RegisterMap_CB_CB, query, data, DBPrio_High);
 	}
@@ -554,8 +554,9 @@ public void Sys_DB_RegisterMap_CB_CB(Handle owner, Handle hndl, const char[] err
 	}
 
 	char mapname[64];
+	data.Reset();
 	data.ReadString(mapname, sizeof(mapname));
-	CloseHandle(data);
+	Sys_KillHandle(data);
 
 	if(StrEqual(mapname, g_cMapName) && Sys_InMap()){
 		g_iMapID = SQL_FetchInt(hndl, 0);
@@ -713,27 +714,29 @@ public void Sys_DB_UpdatePlayTime(int client){
 public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBroadcast){
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 
-	if(g_Settings_bNoBlock){
-		switch(g_Settings_iNoBlockMethod){
-			case NOBLOCK_TYPE_COLLISIONGROUP:{
-				//if(g_iOffset_CollisionGroup != -1)
-				//	SetEntData(client, g_iOffset_CollisionGroup, 2, 4, true);
+	if(0 < client <= MaxClients && IsClientInGame(client)){
+		if(g_Settings_bNoBlock){
+			switch(g_Settings_iNoBlockMethod){
+				case NOBLOCK_TYPE_COLLISIONGROUP:{
+					//if(g_iOffset_CollisionGroup != -1)
+					//	SetEntData(client, g_iOffset_CollisionGroup, 2, 4, true);
 
-				if(Entity_GetCollisionGroup(client) != COLLISION_GROUP_DEBRIS_TRIGGER)
-					Entity_SetCollisionGroup(client, COLLISION_GROUP_DEBRIS_TRIGGER);
-			}
-			case NOBLOCK_TYPE_SOLIDTYPE:{
-				if(Entity_GetSolidType(client) != SOLID_NONE)
-					Entity_SetSolidType(client, SOLID_NONE);
+					if(Entity_GetCollisionGroup(client) != COLLISION_GROUP_DEBRIS_TRIGGER)
+						Entity_SetCollisionGroup(client, COLLISION_GROUP_DEBRIS_TRIGGER);
+				}
+				case NOBLOCK_TYPE_SOLIDTYPE:{
+					if(Entity_GetSolidType(client) != SOLID_NONE)
+						Entity_SetSolidType(client, SOLID_NONE);
+				}
 			}
 		}
-	}
 
-	if(g_Settings_bSpawnProtection){
-		if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_GODMODE){
-			g_bSpawnProtection[client] = true;
-			PrintTextChat(client, "%t", "Temporary protection");
-			CreateTimer(g_Settings_fSpawnProtection_Length, Timer_SpawnProtection, GetClientUserId(client));
+		if(g_Settings_bSpawnProtection){
+			if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_GODMODE){
+				g_bSpawnProtection[client] = true;
+				PrintTextChat(client, "%t", "Temporary protection");
+				CreateTimer(g_Settings_fSpawnProtection_Length, Timer_SpawnProtection, GetClientUserId(client));
+			}
 		}
 	}
 }
@@ -1041,22 +1044,22 @@ public int Native_DB_TQuery(Handle plugin, int numParams){
 		any data = GetNativeCell(3);
 		DBPriority prio = GetNativeCell(4);
 
-		Handle hPack = CreateDataPack();
-		WritePackCell(hPack, plugin);
-		WritePackFunction(hPack, callback);
-		WritePackCell(hPack, data);
+		DataPack hPack = CreateDataPack();
+		hPack.WriteCell(plugin);
+		hPack.WriteFunction(callback);
+		hPack.WriteCell(data);
 
 		SQL_TQuery(g_SysDB, Native_DB_TQuery_Callback, sQuery, hPack, prio);
 	}
 }
 
-public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] error, DataPack data)
 {
-	ResetPack(data);
+	data.Reset();
 
-	Handle plugin = view_as<Handle>(ReadPackCell(data));
-	SQLTCallback callback = view_as<SQLTCallback>(ReadPackFunction(data));
-	any hPack = ReadPackCell(data);
+	Handle plugin = view_as<Handle>(data.ReadCell());
+	SQLTCallback callback = view_as<SQLTCallback>(data.ReadFunction());
+	DataPack hPack = data.ReadCell();
 
 	Sys_KillHandle(data);
 
