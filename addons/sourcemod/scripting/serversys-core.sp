@@ -65,6 +65,7 @@ int 	g_Settings_iNoBlockMethod;
 */
 bool 	g_Settings_bHide;
 bool	g_Settings_bHideAlways;
+bool	g_Settings_bHideAlways_Everything;
 bool 	g_Settings_bHideDead;
 bool 	g_Settings_bHideNoClip;
 int 	g_Settings_iHideMethod;
@@ -770,7 +771,7 @@ public Action Hook_SetTransmit(int entity, int client){
 	if(g_Settings_bHide){
 		if(g_Settings_bHideAlways && g_Settings_bHideAlways_Everything)
 			return Plugin_Handled;
-		
+
 		if(entity != client && (0 < entity <= MaxClients) && IsPlayerAlive(client)){
 			if(g_bHideEnabled[client] || g_Settings_bHideAlways){
 				switch(g_Settings_iHideMethod){
