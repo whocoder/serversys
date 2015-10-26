@@ -139,6 +139,7 @@ public void OnPluginStart(){
 	LoadConfig();
 
 	LoadTranslations("common.phrases");
+	LoadTranslations("generic.phrases");
 	LoadTranslations("serversys.phrases");
 
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
@@ -390,7 +391,7 @@ public void OnClientAuthorized(int client, const char[] sauth){
 public void Command_ToggleHide(int client, const char[] command, const char[] args){
 	g_bHideEnabled[client] = !(g_bHideEnabled[client]);
 
-	PrintTextChat("%t%t", "Hide toggled", (g_bHideEnabled[client] ? "On" : "Off"));
+		PrintTextChat("%t%t", "Hide toggled", (g_bHideEnabled[client] ? "enabled" : "disabled"));
 }
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs){

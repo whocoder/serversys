@@ -1,0 +1,22 @@
+"Phrases"
+{
+	"Enabled"
+	{
+		"en" 		"Enabled"
+	}
+
+	"Disabled"
+	{
+		"en"		"Disabled"
+	}
+
+	"enabled"
+	{
+		"en"		"enabled"
+	}
+
+	"disabled"
+	{
+		"en"		"disabled"
+	}
+}
