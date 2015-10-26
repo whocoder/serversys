@@ -24,6 +24,6 @@
 	"Hide toggled"
 	{
 		"#format"	"{1:s}"
-		"en"		"Hide players: {1}"
+		"en"		"Hiding players has been {1}."
 	}
 }

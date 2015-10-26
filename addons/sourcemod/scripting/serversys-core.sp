@@ -60,6 +60,7 @@ bool 	g_Settings_bHide;
 bool 	g_Settings_bHideDead;
 bool 	g_Settings_bHideNoClip;
 int 	g_Settings_iHideMethod;
+char	g_Settings_cHideCommand[128];
 
 /**
 * Hide variables
@@ -196,6 +197,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 */
 public void OnAllPluginsLoaded(){
 	Sys_DB_Connect(g_Settings_cDatabaseName);
+
 	Sys_RegisterChatCommand(g_Settings_cHideCommand, Command_ToggleHide);
 }
 
@@ -296,6 +298,8 @@ void LoadConfig(char[] map_name = ""){
 
 		g_Settings_iHideMethod = KvGetNum(kv, "method", HIDE_NORMAL);
 
+		KvGetString(kv, "command", g_Settings_cHideCommand, sizeof(g_Settings_cHideCommand), "");
+
 		KvGoBack(kv);
 	}else
 		g_Settings_bHide = false;
@@ -389,9 +393,11 @@ public void OnClientAuthorized(int client, const char[] sauth){
 }
 
 public void Command_ToggleHide(int client, const char[] command, const char[] args){
-	g_bHideEnabled[client] = !(g_bHideEnabled[client]);
+	if(strlen(g_Settings_cHideCommand) > 0){
+		g_bHideEnabled[client] = !(g_bHideEnabled[client]);
 
 		PrintTextChat("%t%t", "Hide toggled", (g_bHideEnabled[client] ? "enabled" : "disabled"));
+	}
 }
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs){
