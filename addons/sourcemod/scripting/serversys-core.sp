@@ -232,13 +232,6 @@ public void OnPlayerIDLoaded(int client, int playerID){
 	Sys_DB_RegisterPlayTime(client);
 }
 
-public void OnClientCookiesCached(int client){
-	char enabled[16];
-	GetClientCookie(client, Hide_Cookie, enabled, sizeof(enabled));
-
-	g_bHideEnabled[client] = view_as<bool>(StringToInt(enabled));
-}
-
 void LoadConfig(char[] map_name = ""){
 	Handle kv = CreateKeyValues("Server-Sys");
 	char Config_Path[PLATFORM_MAX_PATH];
@@ -316,7 +309,7 @@ void LoadConfig(char[] map_name = ""){
 	if(KvJumpToKey(kv, "spawning")){
 		g_Settings_bAutoRespawn = view_as<bool>(KvGetNum(kv, "auto-respawn", 0));
 
-		g_Settings_fAutoRespawnDelay = view_as<bool>(KvGetFloat(kv, "auto-respawn-delay", 0.0));
+		g_Settings_fAutoRespawnDelay = KvGetFloat(kv, "auto-respawn-delay", 0.0);
 
 		g_Settings_bSpawnProtection = view_as<bool>(KvGetNum(kv, "spawnprotection", 0));
 
@@ -1110,14 +1103,14 @@ public int Native_GetServerID(Handle plugin, int numParams){
 	return g_Settings_iServerID;
 }
 
-public void Native_GetServerName(Handle plugin, int numParams){
+public int Native_GetServerName(Handle plugin, int numParams){
 	int len = GetNativeCell(2);
 	char[] buff = new char[len];
 	Format(buff, len, "%s", g_Settings_cServerName);
 	SetNativeString(1, buff, len);
 }
 
-public void Native_GetServerIP(Handle plugin, int numParams){
+public int Native_GetServerIP(Handle plugin, int numParams){
 	int len = GetNativeCell(2);
 	char[] buff = new char[len];
 	Format(buff, len, "%s", g_Settings_cServerIP);
