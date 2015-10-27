@@ -1170,8 +1170,8 @@ public int Native_RegisterChatCommand(Handle plugin, int numParams){
 		for(int n = 0; n < count; n++){
 			if(handled[n] == false && StrEqual(splitcommands[n], g_cCC_Commands[i], false)){
 				handled[n] = true;
-				g_fCC_Callback[i] = plugin;
-				g_hCC_Plugin[i] = callback;
+				g_fCC_Callback[i] = callback;
+				g_hCC_Plugin[i] = plugin;
 			}
 		}
 	}
@@ -1179,8 +1179,8 @@ public int Native_RegisterChatCommand(Handle plugin, int numParams){
 	for(int i = 0; i < count; i++){
 		if(handled[n] == false){
 			strcopy(g_cCC_Commands[g_iCC_Count], 32, splitcommands[i]);
-			g_hCC_Plugin[g_iCC_Count] = plugin;
 			g_fCC_Callback[g_iCC_Count] = callback;
+			g_hCC_Plugin[g_iCC_Count] = plugin;
 
 			g_iCC_Count++;
 		}
