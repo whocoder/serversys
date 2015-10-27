@@ -100,6 +100,8 @@ bool	g_Settings_bDamage_GM_BetweenRound;
 bool	g_Settings_bDamage_HSOnlyRounds;
 float 	g_Settings_fDamage_HSOnlyRoundPer;
 
+float	g_Settings_fDamage_Multiplier = 1.0;
+
 /**
 * Chat command settings
 */
@@ -340,6 +342,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bSpawnProtection = false;
 
 	if(KvJumpToKey(kv, "damage")){
+		g_Settings_fDamage_Multiplier = KvGetFloat(kv, "multiplier", 1.0);
 		if(KvJumpToKey(kv, "godmode")){
 			g_Settings_bDamage_GM 				= view_as<bool>(KvGetNum(kv, "enabled", 0));
 			g_Settings_bDamage_GM_BetweenRound 	= view_as<bool>(KvGetNum(kv, "between-round", 0));
@@ -833,6 +836,9 @@ public Action Hook_TraceAttack(int victim, int &attacker, int &inflictor, float 
 				return Plugin_Handled;
 		}
 	}
+
+	if(g_Settings_fDamage_Multiplier != 0.0 && g_Settings_fDamage_Multiplier != 1.0)
+		damage *= g_Settings_fDamage_Multiplier;
 
 	return Plugin_Continue;
 }
