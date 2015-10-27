@@ -1161,23 +1161,26 @@ public int Native_RegisterChatCommand(Handle plugin, int numParams){
 	if((count <= 0) || ((g_iCC_Count + count) >= SYS_MAX_COMMANDS))
 		return false;
 
+	bool handled[count] = {false, ...};
 	// Check if the command is taken already
 	for(int i = 0; i < g_iCC_Count; i++){
 		for(int n = 0; n < count; n++){
-			if(StrEqual(splitcommands[n], g_cCC_Commands[i], false)){
-				strcopy(g_cCC_Commands[i], 32, "");
-				g_fCC_Callback[i] = null;
-				g_hCC_Plugin[i] = INVALID_HANDLE;
+			if(handled[n] == false && StrEqual(splitcommands[n], g_cCC_Commands[i], false)){
+				handled[n] = true;
+				g_fCC_Callback[i] = plugin;
+				g_hCC_Plugin[i] = callback;
 			}
 		}
 	}
 
 	for(int i = 0; i < count; i++){
-		strcopy(g_cCC_Commands[g_iCC_Count], 32, splitcommands[i]);
-		g_hCC_Plugin[g_iCC_Count] = plugin;
-		g_fCC_Callback[g_iCC_Count] = callback;
+		if(handled[n] == false){
+			strcopy(g_cCC_Commands[g_iCC_Count], 32, splitcommands[i]);
+			g_hCC_Plugin[g_iCC_Count] = plugin;
+			g_fCC_Callback[g_iCC_Count] = callback;
 
-		g_iCC_Count++;
+			g_iCC_Count++;
+		}
 	}
 
 	return true;
