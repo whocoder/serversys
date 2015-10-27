@@ -1177,7 +1177,7 @@ public int Native_RegisterChatCommand(Handle plugin, int numParams){
 	}
 
 	for(int i = 0; i < count; i++){
-		if(handled[n] == false){
+		if(handled[i] == false){
 			strcopy(g_cCC_Commands[g_iCC_Count], 32, splitcommands[i]);
 			g_fCC_Callback[g_iCC_Count] = callback;
 			g_hCC_Plugin[g_iCC_Count] = plugin;
