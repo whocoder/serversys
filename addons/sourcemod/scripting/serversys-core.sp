@@ -1161,7 +1161,10 @@ public int Native_RegisterChatCommand(Handle plugin, int numParams){
 	if((count <= 0) || ((g_iCC_Count + count) >= SYS_MAX_COMMANDS))
 		return false;
 
-	bool handled[count] = {false, ...};
+	bool[] handled = new bool[count];
+	for(int n=0;n<count;n++){
+		handled[n] = false;
+	}
 	// Check if the command is taken already
 	for(int i = 0; i < g_iCC_Count; i++){
 		for(int n = 0; n < count; n++){
