@@ -433,7 +433,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		return Plugin_Continue;
 
 	for (int i = 0; i < g_iCC_Count; i++){
-		if(StrEqual(cmds[0], g_cCC_Commands[i], false) && (strlen(g_cCC_Commands) > 1)){
+		if(StrEqual(cmds[0], g_cCC_Commands[i], false) && (strlen(g_cCC_Commands[i]) > 1)){
 			Call_StartFunction(g_hCC_Plugin[i], g_fCC_Callback[i]);
 			Call_PushCell(client);
 			Call_PushString(cmds[0]);
@@ -1139,7 +1139,7 @@ public int Native_RegisterChatCommand(Handle plugin, int numParams){
 	for(int i = 0; i < g_iCC_Count; i++){
 		for(int n = 0; n < count; n++){
 			if(StrEqual(splitcommands[n], g_cCC_Commands[i], false)){
-				strcopy(g_cCC_Commands[i], "");
+				strcopy(g_cCC_Commands[i], 32, "");
 				g_fCC_Callback[i] = null;
 				g_hCC_Plugin[i] = INVALID_HANDLE;
 			}
