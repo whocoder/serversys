@@ -157,7 +157,8 @@ public void OnPluginStart(){
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 	HookEvent("round_start", Event_RoundStart, EventHookMode_Post);
 	HookEvent("round_end", Event_RoundEnd, EventHookMode_Post);
-	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
+	HookEvent("player_death", Event_PlayerDeath_Pre, EventHookMode_Pre);
+	HookEvent("player_death", Event_PlayerDeath_Post, EventHookMode_Post);
 
 	AddCommandListener(Command_JoinTeam, "jointeam");
 	AddCommandListener(Command_JoinTeam, "spectate");
@@ -167,7 +168,8 @@ public void OnPluginEnd(){
 	UnhookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 	UnhookEvent("round_start", Event_RoundStart, EventHookMode_Post);
 	UnhookEvent("round_end", Event_RoundEnd, EventHookMode_Post);
-	UnhookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
+	UnhookEvent("player_death", Event_PlayerDeath_Pre, EventHookMode_Pre);
+	UnhookEvent("player_death", Event_PlayerDeath_Post, EventHookMode_Post);
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -844,21 +846,45 @@ public Action Hook_TraceAttack(int victim, int &attacker, int &inflictor, float 
 }
 
 
-public Action Event_PlayerDeath(Handle event, const char[] name, bool PreventBroadcast){
+public Action Event_PlayerDeath_Pre(Handle event, const char[] name, bool PreventBroadcast){
 	/*
 	*	Hook player death and notify of respawn status if method == 1
 	*	This is so that if they die, they will be notified of their
 	*	incoming respawn.
 	*/
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-
 	if(g_Settings_bSpawnProtection && g_bSpawnProtectionGlobal){
-		if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_RESPAWN){
-			char _name[64];
-			Format(_name, sizeof(_name), "%N", client);
-			PrintTextChatAll("%t", "Client will be respawned", _name);
+		int client = GetClientOfUserId(GetEventInt(event, "userid"));
+
+		if((0 < client <= MaxClients) && IsClientInGame(client)){
+			if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_RESPAWN){
+				char _name[64];
+				Format(_name, sizeof(_name), "%N", client);
+				PrintTextChatAll("%t", "Client will be respawned", _name);
+			}
 		}
 	}
+}
+
+public Action Event_PlayerDeath_Post(Handle event, const char[] name, bool PreventBroadcast){
+	if(g_Settings_bAutoRespawn){
+		int client = GetClientOfUserId(GetEventInt(event, "userid"));
+
+		if((0 < client <= MaxClients) && IsClientInGame(client) && !IsPlayerAlive(client)){
+			CreateTimer(g_Settings_fAutoRespawnDelay, Timer_Respawn, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+		}
+	}
+}
+
+public Action Timer_Respawn(Handle timer, int userid){
+	int client = GetClientOfUserId(userid);
+
+	if((0 < client <= MaxClients) && IsClientInGame(client) && !IsPlayerAlive(client)){
+		if(GetClientTeam(client) == 2 || GetClientTeam(client) == 3){
+			CS_RespawnPlayer(client);
+		}
+	}
+
+	return Plugin_Stop;
 }
 
 public Action Event_RoundStart(Handle event, const char[] name, bool PreventBroadcast){
