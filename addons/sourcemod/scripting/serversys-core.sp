@@ -269,18 +269,18 @@ void LoadConfig(char[] map_name = ""){
 	if(KvJumpToKey(kv, "core")){
 		KvGetString(kv, "name", g_Settings_cDatabaseName, sizeof(g_Settings_cDatabaseName), "serversys");
 
-		g_Settings_iServerID = KvGetNum(kv, "server-id", -1);
+		g_Settings_iServerID = KvGetNum(kv, "server_id", -1);
 
-		KvGetString(kv, "server-ip", g_Settings_cServerIP, sizeof(g_Settings_cServerIP), "127.0.0.1");
+		KvGetString(kv, "server_ip", g_Settings_cServerIP, sizeof(g_Settings_cServerIP), "127.0.0.1");
 
-		KvGetString(kv, "server-name", g_Settings_cServerName, sizeof(g_Settings_cServerName), "none");
+		KvGetString(kv, "server_name", g_Settings_cServerName, sizeof(g_Settings_cServerName), "none");
 
 		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none"))
 			SetFailState("[serversys] core :: Invalid Server ID or Server Name supplied.");
 
-		g_Settings_bTeamOverride = view_as<bool>(KvGetNum(kv, "team-override", 0));
+		g_Settings_bTeamOverride = view_as<bool>(KvGetNum(kv, "team_override", 0));
 
-		if(KvJumpToKey(kv, "playtime-tracking")){
+		if(KvJumpToKey(kv, "playtime_tracking")){
 			g_Settings_bPlayTime = view_as<bool>(KvGetNum(kv, "enabled", 0));
 
 			KvGoBack(kv);
@@ -304,10 +304,10 @@ void LoadConfig(char[] map_name = ""){
 
 		g_Settings_bHideAlways = view_as<bool>(KvGetNum(kv, "always", 0));
 
-		g_Settings_bHideAlways_Everything = view_as<bool>(KvGetNum(kv, "always-everything", 0));
+		g_Settings_bHideAlways_Everything = view_as<bool>(KvGetNum(kv, "always_everything", 0));
 
-		g_Settings_bHideDead = view_as<bool>(KvGetNum(kv, "hide-dead", 1));
-		g_Settings_bHideNoClip = view_as<bool>(KvGetNum(kv, "hide-noclip", 0));
+		g_Settings_bHideDead = view_as<bool>(KvGetNum(kv, "hide_dead", 1));
+		g_Settings_bHideNoClip = view_as<bool>(KvGetNum(kv, "hide_noclip", 0));
 
 		g_Settings_iHideMethod = KvGetNum(kv, "method", HIDE_NORMAL);
 
@@ -327,15 +327,15 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_bNoBlock = false;
 
 	if(KvJumpToKey(kv, "spawning")){
-		g_Settings_bAutoRespawn = view_as<bool>(KvGetNum(kv, "auto-respawn", 0));
+		g_Settings_bAutoRespawn = view_as<bool>(KvGetNum(kv, "auto_respawn", 0));
 
-		g_Settings_fAutoRespawnDelay = KvGetFloat(kv, "auto-respawn-delay", 0.0);
+		g_Settings_fAutoRespawnDelay = KvGetFloat(kv, "auto_respawn_delay", 0.0);
 
 		g_Settings_bSpawnProtection = view_as<bool>(KvGetNum(kv, "spawnprotection", 0));
 
-		g_Settings_iSpawnProtection_Method = KvGetNum(kv, "spawnprotection-method", SPAWNPROTECT_GODMODE);
+		g_Settings_iSpawnProtection_Method = KvGetNum(kv, "spawnprotection_method", SPAWNPROTECT_GODMODE);
 
-		g_Settings_fSpawnProtection_Length = KvGetFloat(kv, "spawnprotection-length", 5.0);
+		g_Settings_fSpawnProtection_Length = KvGetFloat(kv, "spawnprotection_length", 5.0);
 
 		KvGoBack(kv);
 	}else
@@ -345,7 +345,7 @@ void LoadConfig(char[] map_name = ""){
 		g_Settings_fDamage_Multiplier = KvGetFloat(kv, "multiplier", 1.0);
 		if(KvJumpToKey(kv, "godmode")){
 			g_Settings_bDamage_GM 				= view_as<bool>(KvGetNum(kv, "enabled", 0));
-			g_Settings_bDamage_GM_BetweenRound 	= view_as<bool>(KvGetNum(kv, "between-round", 0));
+			g_Settings_bDamage_GM_BetweenRound 	= view_as<bool>(KvGetNum(kv, "between_round", 0));
 
 			KvGoBack(kv);
 		}else{
@@ -353,7 +353,7 @@ void LoadConfig(char[] map_name = ""){
 			g_Settings_bDamage_GM_BetweenRound = false;
 		}
 
-		if(KvJumpToKey(kv, "headshot-rounds")){
+		if(KvJumpToKey(kv, "headshot_rounds")){
 			g_Settings_bDamage_HSOnlyRounds		= view_as<bool>(KvGetNum(kv, "enabled", 0));
 			g_Settings_fDamage_HSOnlyRoundPer	= KvGetFloat(kv, "percent", 10.0);
 			g_iHeadGroup						= KvGetNum(kv, "hitgroup", 1);
@@ -370,7 +370,7 @@ void LoadConfig(char[] map_name = ""){
 	}
 
 	if(KvJumpToKey(kv, "commands")){
-		g_Settings_bHideChatCommands 		= view_as<bool>(KvGetNum(kv, "hide-commands", 0));
+		g_Settings_bHideChatCommands 		= view_as<bool>(KvGetNum(kv, "hide_commands", 0));
 
 		KvGoBack(kv);
 	}else
