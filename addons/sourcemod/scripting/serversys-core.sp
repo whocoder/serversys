@@ -95,6 +95,7 @@ int		g_iSafeConnectCount = 1;
 /**
 * God-mode settings
 */
+bool	g_Settings_bDamage_Notify;
 bool	g_Settings_bDamage_GM;
 bool	g_Settings_bDamage_GM_BetweenRound;
 bool	g_Settings_bDamage_HSOnlyRounds;
@@ -345,6 +346,8 @@ void LoadConfig(char[] map_name = ""){
 
 	if(KvJumpToKey(kv, "damage")){
 		g_Settings_fDamage_Multiplier = KvGetFloat(kv, "multiplier", 1.0);
+		g_Settings_bDamage_Notify = view_as<bool>(KvGetNum(kv, "notify", 0));
+
 		if(KvJumpToKey(kv, "godmode")){
 			g_Settings_bDamage_GM 				= view_as<bool>(KvGetNum(kv, "enabled", 0));
 			g_Settings_bDamage_GM_BetweenRound 	= view_as<bool>(KvGetNum(kv, "between_round", 0));
@@ -815,12 +818,18 @@ public Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float
 	if((g_Settings_bDamage_GM_BetweenRound) && !(Sys_InRound()))
 		return Plugin_Handled;
 
-	int client = victim;
+	if((0 < victim <= MaxClients) && IsClientInGame(victim)){
 
-	if(g_Settings_bSpawnProtection && g_bSpawnProtection[client])
-	{
-		if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_GODMODE)
-			return Plugin_Handled;
+		if(g_Settings_bSpawnProtection && g_bSpawnProtection[victim]){
+			if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_GODMODE)
+				return Plugin_Handled;
+		}
+
+		if((0 < attacker <= MaxClients) && IsClientInGame(attacker)){
+			if(g_Settings_bDamage_Notify){
+				PrintTextChat(attacker, "%t", "Did damage", damage);
+			}
+		}
 	}
 
 	return Plugin_Continue;
@@ -834,8 +843,10 @@ public Action Hook_TraceAttack(int victim, int &attacker, int &inflictor, float 
 
 	if(g_bHSOnlyRound){
 		if((0 < victim <= MaxClients) && (0 < attacker <= MaxClients) && IsClientInGame(victim) && IsClientInGame(attacker)){
-			if(hitgroup != g_iHeadGroup)
-				return Plugin_Handled;
+			if(hitgroup != g_iHeadGroup){
+				damage = 0.0;
+				return Plugin_Changed;
+			}
 		}
 	}
 
@@ -910,7 +921,7 @@ public Action Event_RoundStart(Handle event, const char[] name, bool PreventBroa
 	*	there's possibility for a headshot round.
 	*/
 
-	if(g_bHSOnlyRound){
+	if(g_bHSOnlyRound && !(g_Settings_fDamage_Multiplier >= 100.0)){
 		g_bHSOnlyRound = false;
 	}else{
 		if(g_Settings_bDamage_HSOnlyRounds){
@@ -946,8 +957,8 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 				if(g_bSpawnProtectionGlobal){
 					for(int i = 1; i <= MaxClients; i++){
 						if(IsClientConnected(i) && IsClientInGame(i) && !(IsPlayerAlive(i))){
-							switch(GetGameType()){
-								case GameType_TF2:{
+							switch(GetEngineVersion()){
+								case Engine_TF2:{
 									switch(GetClientTeam(i)){
 										case TFTeam_Blue, TFTeam_Red:{
 											TF2_RespawnPlayer(i);
@@ -955,7 +966,7 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 										}
 									}
 								}
-								case GameType_CSGO, GameType_CSS:{
+								case Engine_CSGO, Engine_CSS:{
 									switch(GetClientTeam(i)){
 										case CS_TEAM_T, CS_TEAM_CT:{
 											CS_RespawnPlayer(i);

@@ -1,11 +1,7 @@
-/**
-* enum -> GameType
-*/
-enum SupportedGames {
-	GameType_CSS,
-	GameType_CSGO,
-	GameType_TF2
-};
+#if defined _serversys_stocks_included
+  #endinput
+#endif
+#define _serversys_stocks_included
 
 /**
 * Used to cleanly close handles
@@ -39,54 +35,27 @@ stock float Sys_GetVelocity(int client, bool useX = true, bool useY = true, bool
 }
 
 /**
-* Vector angles, function by blacky.
-*
-* @param vel
-* @param angles
-*/
-stock void VectorAngles(float vel[3], float angles[3]){
-	float tmp, float yaw, float pitch;
-
-	if (vel[1] == 0 && vel[0] == 0)
-	{
-		yaw = 0.0;
-		if (vel[2] > 0)
-			pitch = 270.0;
-		else
-			pitch = 90.0;
-	}
-	else
-	{
-		yaw = (ArcTangent2(vel[1], vel[0]) * (180 / 3.141593));
-		if (yaw < 0)
-			yaw += 360;
-
-		tmp = SquareRoot(vel[0]*vel[0] + vel[1]*vel[1]);
-		pitch = (ArcTangent2(-vel[2], tmp) * (180 / 3.141593));
-		if (pitch < 0)
-			pitch += 360;
-	}
-
-	angles[0] = pitch;
-	angles[1] = yaw;
-	angles[2] = 0.0;
-}
-
-/**
 * Used to get the amount of connected
 * players in the server.
 *
 * @param Team			Optional int to specify a team.
-* @param real			Optional bool to rule out bots and SourceTV
-*							(real clients only)
+* @param badteams		Optionally include team 0
+* @param bots			Optionally include bots.
+* @param stv			Optionally include SourceTV.
 */
-stock int Sys_PlayerCount(int Team = -1, bool real = false){
-	int count = 0;
+stock int Sys_GetPlayerCount(int Team = -2001, bool badteams = false, bool bots = false, bool stv = false){
+	int PlayersNum = 0;
+
 	for(int i = 1; i <= MaxClients; i++){
-		if(IsClientConnected(i) && ((Team != -1) ? (GetClientTeam(i) == Team) : true) && ((real != false) ? (!IsFakeClient(i) && !IsClientSourceTV(i)) : (true)))
-			count++;
+		if(IsClientInGame(i) && (stv == true || !IsClientSourceTV(i)) && (bots == true || !IsFakeClient(i))){
+			if(Team == -2001 && (badteams == true || (GetClientTeam(i) != 0)))
+				PlayersNum++;
+			else if(Team == GetClientTeam(i))
+				PlayersNum++;
+		}
 	}
-	return count;
+
+	return PlayersNum;
 }
 
 /**
@@ -94,14 +63,42 @@ stock int Sys_PlayerCount(int Team = -1, bool real = false){
 * players in the server.
 *
 * @param Team			Optional int to specify a team.
+* @param bots			Optionally include bots.
+* @param stv			Optionally include SourceTV.
 */
-stock int Sys_AlivePlayerCount(int Team = -1){
-	int count = 0;
+stock int Sys_GetAlivePlayerCount(int Team = -2001, bool bots = false, bool stv = false){
+	int PlayersNum = 0;
+
 	for(int i = 1; i <= MaxClients; i++){
-		if(IsClientConnected(i) && IsPlayerAlive(i) && ((Team != -1) ? (GetClientTeam(i) == Team) : true))
-			count++;
+		if(IsClientInGame(i) && IsPlayerAlive(i) && (stv == true || !IsClientSourceTV(i)) && (bots == true || !IsFakeClient(i))){
+			if(Team == -2001 || (Team == GetClientTeam(i)))
+				PlayersNum++;
+		}
 	}
-	return count;
+
+	return PlayersNum;
+}
+
+/**
+* Used to get a random valid player index.
+*
+* @param Team			Optionally specify a team.
+* @param alive			Optionally require players to be alive.
+*/
+stock int Sys_GetRandomPlayer(int Team = -2001, bool alive = false){
+	int[] Players = new int[MaxClients + 1];
+	int PlayersNum = 0;
+
+	for (int i = 1; i <= MaxClients; i++){
+		if (IsClientInGame(i) && (alive == false || IsPlayerAlive(i)) && !IsClientSourceTV(i) && !IsFakeClient(i)){
+			if(Team == -2001 || (GetClientTeam(i) == Team)){
+				Players[PlayersNum] = i;
+				PlayersNum++;
+			}
+		}
+	}
+
+	return (PlayersNum != 0) ? Players[GetRandomInt(0, PlayersNum - 1)] : 0;
 }
 
 /**
@@ -111,7 +108,7 @@ stock int Sys_AlivePlayerCount(int Team = -1){
 * @param ...			Formatting options
 */
 stock void PrintToConsoleAll(char[] format, any ...){
-	char buffer[192];
+	char buffer[300];
 
 	for (int i = 1; i <= MaxClients; i++){
 		if (IsClientInGame(i)){
@@ -154,13 +151,14 @@ stock void PrintTextChatAll(char[] msg, any ...){
 	}
 }
 
-/*
-* Forces a cvar's value
-*/
-stock void ForceConVar(char[] cvarname, char[] value){
-	ConVar cvar = FindConVar(cvarname);
-	if(cvar != null)
-		cvar.SetString(value, true);
+stock void SetClientHealth(int client, int health){
+	if(IsClientInGame(client) && IsPlayerAlive(client))
+		SetEntProp(client, Prop_Send, "m_iHealth", health, 1);
+}
+
+stock void SetClientArmor(int client, int armor){
+	if(IsClientInGame(client) && IsPlayerAlive(client))
+		SetEntProp(client, Prop_Send, "m_ArmorValue", armor, 1);
 }
 
 /*
@@ -244,23 +242,41 @@ stock void PrintTextChatObservers(int target, const char[] msg, any ...){
 	}
 }
 
-static SupportedGames s__i_Engine;
-static bool s__b_Engine_Checked = false;
+stock int Sys_FormatColors(const char[] source, char[] destination, int maxlen){
 
-stock SupportedGames GetGameType(){
-	if(!s__b_Engine_Checked){
-		EngineVersion engVersion = GetEngineVersion();
+}
 
-		if(engVersion == Engine_CSGO)
-			s__i_Engine = GameType_CSGO;
 
-		if(engVersion == Engine_CSS)
-			s__i_Engine = GameType_CSS;
+/**
+* Vector angles, function by blacky.
+*
+* @param vel
+* @param angles
+*/
+stock void Sys_VectorAngles(float vel[3], float angles[3]){
+	float tmp, float yaw, float pitch;
 
-		if(engVersion == Engine_TF2)
-			s__i_Engine = GameType_TF2;
-
-		s__b_Engine_Checked = true;
+	if (vel[1] == 0 && vel[0] == 0)
+	{
+		yaw = 0.0;
+		if (vel[2] > 0)
+			pitch = 270.0;
+		else
+			pitch = 90.0;
 	}
-	return view_as<SupportedGames>(s__i_Engine);
+	else
+	{
+		yaw = (ArcTangent2(vel[1], vel[0]) * (180 / 3.141593));
+		if (yaw < 0)
+			yaw += 360;
+
+		tmp = SquareRoot(vel[0]*vel[0] + vel[1]*vel[1]);
+		pitch = (ArcTangent2(-vel[2], tmp) * (180 / 3.141593));
+		if (pitch < 0)
+			pitch += 360;
+	}
+
+	angles[0] = pitch;
+	angles[1] = yaw;
+	angles[2] = 0.0;
 }
