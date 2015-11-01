@@ -52,7 +52,7 @@ bool 	g_Settings_bMapConfig;
 /**
 * MapConfig variables
 */
-char	g_cMapName[64];
+char	g_cMapName[256];
 
 /**
 * NoBlock settings
@@ -529,10 +529,18 @@ public void Sys_DB_RegisterServer_CB(Handle owner, Handle hndl, const char[] err
 }
 
 void Sys_DB_RegisterMap(const char[] mapname){
-	char query[1024];
-	Format(query, sizeof(query), "INSERT INTO maps (name, game) VALUES ('%s', %d) ON DUPLICATE KEY UPDATE lastplayed = UNIX_TIMESTAMP();", mapname, view_as<int>(GetEngineVersion()));
+	char query[2048];
+
+	char map[256];
+	Format(map, sizeof(map), "%s", mapname);
+	char[] safename = new char[((2*256)+1)];
+
+	Sys_DB_EscapeString(map, sizeof(map), safename, ((2*256)+1));
+
+	Format(query, sizeof(query), "INSERT INTO maps (name, game) VALUES ('%s', %d) ON DUPLICATE KEY UPDATE lastplayed = UNIX_TIMESTAMP();", safename, view_as<int>(GetEngineVersion()));
 	DataPack pack = CreateDataPack();
-	pack.WriteString(mapname);
+	pack.WriteString(map);
+	pack.WriteString(safename);
 
 	Sys_DB_TQuery(Sys_DB_RegisterMap_CB, query, pack, DBPrio_High);
 }
@@ -542,12 +550,15 @@ public void Sys_DB_RegisterMap_CB(Handle owner, Handle hndl, const char[] error,
 		LogError("[serversys] core :: Error on registering map: %s", error);
 		return;
 	}
-	char mapname[64];
+	char mapname[256];
 	data.Reset();
 	data.ReadString(mapname, sizeof(mapname));
+	char[] safename = new char[((2*256)+1)];
+	data.ReadString(safename, ((2*256)+1));
+	data.Reset();
 	if(StrEqual(mapname, g_cMapName)){
-		char query[1024];
-		Format(query, sizeof(query), "SELECT id FROM maps WHERE name = '%s' AND game = %d;", mapname, view_as<int>(GetEngineVersion()));
+		char query[2048];
+		Format(query, sizeof(query), "SELECT id FROM maps WHERE name='%s' AND game=%d;", safename, view_as<int>(GetEngineVersion()));
 
 		Sys_DB_TQuery(Sys_DB_RegisterMap_CB_CB, query, data, DBPrio_High);
 	}
@@ -559,7 +570,7 @@ public void Sys_DB_RegisterMap_CB_CB(Handle owner, Handle hndl, const char[] err
 		return;
 	}
 
-	char mapname[64];
+	char mapname[256];
 	data.Reset();
 	data.ReadString(mapname, sizeof(mapname));
 	Sys_KillHandle(data);
