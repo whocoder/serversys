@@ -463,9 +463,7 @@ void Sys_DB_Connect(char[] database){
 
 	if(SQL_CheckConfig(database)){
 		SQL_TConnect(Sys_DB_Connect_CB, database);
-	}
-	else
-	{
+	}else{
 		SetFailState("[server-sys] core :: No server-sys database config found in databases.cfg!");
 	}
 }
@@ -558,7 +556,7 @@ public void Sys_DB_RegisterMap_CB(Handle owner, Handle hndl, const char[] error,
 	data.Reset();
 	if(StrEqual(mapname, g_cMapName)){
 		char query[2048];
-		Format(query, sizeof(query), "SELECT id FROM maps WHERE name='%s' AND game=%d;", safename, view_as<int>(GetEngineVersion()));
+		Format(query, sizeof(query), "SELECT id FROM maps WHERE name='%s' AND game='%d';", safename, view_as<int>(GetEngineVersion()));
 
 		Sys_DB_TQuery(Sys_DB_RegisterMap_CB_CB, query, data, DBPrio_High);
 	}
@@ -575,7 +573,7 @@ public void Sys_DB_RegisterMap_CB_CB(Handle owner, Handle hndl, const char[] err
 	data.ReadString(mapname, sizeof(mapname));
 	Sys_KillHandle(data);
 
-	if(StrEqual(mapname, g_cMapName) && Sys_InMap()){
+	if(StrEqual(mapname, g_cMapName) && Sys_InMap() && SQL_FetchRow(hndl)){
 		g_iMapID = SQL_FetchInt(hndl, 0);
 
 		Call_StartForward(g_hF_Sys_OnMapIDLoaded);
