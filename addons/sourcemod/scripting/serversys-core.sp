@@ -1,6 +1,5 @@
 #include <sourcemod>
 #include <sdkhooks>
-#include <smlib>
 
 #include <serversys>
 
@@ -415,7 +414,7 @@ public void Command_ToggleHide(int client, const char[] command, const char[] ar
 	if(strlen(g_Settings_cHideCommand) > 0 && g_Settings_bHide && !g_Settings_bHideAlways){
 		g_bHideEnabled[client] = !(g_bHideEnabled[client]);
 
-		PrintTextChat(client, "%t%t", "Hide toggled", (g_bHideEnabled[client] ? "enabled" : "disabled"));
+		CPrintToChat(client, "%t%t", "Hide toggled", (g_bHideEnabled[client] ? "enabled" : "disabled"));
 	}
 }
 
@@ -492,6 +491,10 @@ public void Sys_DB_Connect_CB(Handle owner, Handle hndl, const char[] error, any
 
 	g_SysDB_bConnected = true;
 
+	if(g_bInMap){
+		Sys_DB_RegisterMap(g_cMapName);
+	}
+
 	Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
 	Call_PushCell(true);
 	Call_Finish();
@@ -531,9 +534,9 @@ void Sys_DB_RegisterMap(const char[] mapname){
 
 	char map[256];
 	Format(map, sizeof(map), "%s", mapname);
-	char[] safename = new char[((2*256)+1)];
+	char safename[513];
 
-	Sys_DB_EscapeString(map, sizeof(map), safename, ((2*256)+1));
+	Sys_DB_EscapeString(map, 256, safename, 513);
 
 	Format(query, sizeof(query), "INSERT INTO maps (name, game) VALUES ('%s', %d) ON DUPLICATE KEY UPDATE lastplayed = UNIX_TIMESTAMP();", safename, view_as<int>(GetEngineVersion()));
 	DataPack pack = CreateDataPack();
@@ -548,12 +551,15 @@ public void Sys_DB_RegisterMap_CB(Handle owner, Handle hndl, const char[] error,
 		LogError("[serversys] core :: Error on registering map: %s", error);
 		return;
 	}
+
 	char mapname[256];
 	data.Reset();
 	data.ReadString(mapname, sizeof(mapname));
-	char[] safename = new char[((2*256)+1)];
-	data.ReadString(safename, ((2*256)+1));
+
+	char safename[513];
+	data.ReadString(safename, 513);
 	data.Reset();
+
 	if(StrEqual(mapname, g_cMapName)){
 		char query[2048];
 		Format(query, sizeof(query), "SELECT id FROM maps WHERE name='%s' AND game='%d';", safename, view_as<int>(GetEngineVersion()));
@@ -749,7 +755,7 @@ public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBro
 		if(g_Settings_bSpawnProtection){
 			if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_GODMODE){
 				g_bSpawnProtection[client] = true;
-				PrintTextChat(client, "%t", "Temporary protection");
+				CPrintToChat(client, "%t", "Temporary protection");
 				CreateTimer(g_Settings_fSpawnProtection_Length, Timer_SpawnProtection, GetClientUserId(client));
 			}
 		}
@@ -836,7 +842,7 @@ public Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float
 
 		if((0 < attacker <= MaxClients) && IsClientInGame(attacker)){
 			if(g_Settings_bDamage_Notify){
-				PrintTextChat(attacker, "%t", "Did damage", damage);
+				CPrintToChat(attacker, "%t", "Did damage", damage);
 			}
 		}
 	}
@@ -879,7 +885,7 @@ public Action Event_PlayerDeath_Pre(Handle event, const char[] name, bool Preven
 			if(g_Settings_iSpawnProtection_Method == SPAWNPROTECT_RESPAWN){
 				char _name[64];
 				Format(_name, sizeof(_name), "%N", client);
-				PrintTextChatAll("%t", "Client will be respawned", _name);
+				CPrintToChatAll("%t", "Client will be respawned", _name);
 			}
 		}
 	}
@@ -959,7 +965,7 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 			case SPAWNPROTECT_GODMODE:{
 				if((0 < client <= MaxClients) && IsClientInGame(client) && IsPlayerAlive(client) && g_bSpawnProtection[client]){
 					g_bSpawnProtection[client] = false;
-					PrintTextChat(client, "%t", "Spawn protection expired");
+					CPrintToChat(client, "%t", "Spawn protection expired");
 				}
 			}
 			case SPAWNPROTECT_RESPAWN:{
@@ -971,7 +977,7 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 									switch(GetClientTeam(i)){
 										case TFTeam_Blue, TFTeam_Red:{
 											TF2_RespawnPlayer(i);
-											PrintTextChat(i, "%t", "You have respawned");
+											CPrintToChat(i, "%t", "You have respawned");
 										}
 									}
 								}
@@ -979,7 +985,7 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 									switch(GetClientTeam(i)){
 										case CS_TEAM_T, CS_TEAM_CT:{
 											CS_RespawnPlayer(i);
-											PrintTextChat(i, "%t", "You have respawned");
+											CPrintToChat(i, "%t", "You have respawned");
 										}
 									}
 								}
@@ -997,7 +1003,10 @@ public void OnMapStart(){
 	g_bInMap = true;
 	g_iMapStartTime = GetTime();
 	GetCurrentMap(g_cMapName, sizeof(g_cMapName));
-	Sys_DB_RegisterMap(g_cMapName);
+
+	if(g_SysDB_bConnected){
+		Sys_DB_RegisterMap(g_cMapName);
+	}
 
 	if(g_Settings_bMapConfig){
 		CreateTimer(0.5, OnMapStart_Timer_LoadConfig);
