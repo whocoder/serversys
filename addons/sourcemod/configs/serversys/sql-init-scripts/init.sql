@@ -49,7 +49,7 @@ ALTER TABLE `playtime`
   ADD PRIMARY KEY (`row`), ADD KEY `row` (`row`), ADD KEY `pid` (`pid`), ADD KEY `sid` (`sid`), ADD KEY `time` (`time`), ADD INDEX(`row`), ADD INDEX(`pid`), ADD INDEX(`sid`), ADD INDEX(`time`);
 
 ALTER TABLE `maptime`
-  ADD PRIMARY KEY (`row`), ADD KEY `row` (`row`), ADD KEY `mid` (`mid`), ADD KEY `sid` (`sid`), ADD KEY `time` (`time`), ADD INDEX(`row`), ADD INDEX(`mid`), ADD INDEX(`sid`), ADD INDEX(`time`);
+  ADD PRIMARY KEY (`row`), ADD UNIQUE KEY `mid_sid` (`mid`, `sid`), ADD KEY `row` (`row`), ADD KEY `mid` (`mid`), ADD KEY `sid` (`sid`), ADD KEY `time` (`time`), ADD INDEX(`row`), ADD INDEX(`mid`), ADD INDEX(`sid`), ADD INDEX(`time`);
 
 ALTER TABLE `maps`
   ADD PRIMARY KEY (`id`), ADD KEY `game` (`game`), ADD KEY `name` (`name`), ADD KEY `lastplayed` (`lastplayed`), ADD INDEX(`id`), ADD INDEX(`game`), ADD INDEX(`name`);
