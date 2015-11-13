@@ -6,7 +6,6 @@ addons:
 
 env:
   global:
-    - THIS="serversys"
     - INCLUDE=addons/sourcemod/scripting/include/
     - SCRIPTING=addons/sourcemod/scripting/
     - PLUGINS=addons/sourcemod/plugins
