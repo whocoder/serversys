@@ -2,28 +2,34 @@
 {
 	"Temporary protection"
 	{
-		"en"		"You will have temporary spawn protection."
+		"en"		"{GREEN}>> You will have temporary spawn protection."
 	}
 
 	"Client will be respawned"
 	{
 		"#format"	"{1:s}"
-		"en"		"{1} will be respawned for dying early."
+		"en"		"{GREEN}>> {LIME}{1}{GREEN} will be respawned for dying early."
 	}
 
 	"Spawn protection expired"
 	{
-		"en"		"Your spawn protection has expired."
+		"en"		"{GREEN}>> Your spawn protection has {LIME}expired{GREEN}."
 	}
 
 	"You have respawned"
 	{
-		"en"		"You have been respawned."
+		"en"		"{GREEN}>> You have been respawned."
 	}
 
 	"Hide toggled"
 	{
 		"#format"	"{1:s}"
-		"en"		"Hiding players has been {1}."
+		"en"		"{GREEN}>> Hiding players has been {LIME}{1}{GREEN}."
+	}
+
+	"Did damage"
+	{
+		"#format"	"{1:.0f}"
+		"en"		"{GREEN}>> You hit a player for {LIME}{1} damage{GREEN}."
 	}
 }

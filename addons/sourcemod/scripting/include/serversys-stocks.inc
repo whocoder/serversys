@@ -47,8 +47,8 @@ stock int Sys_GetPlayerCount(int Team = -2001, bool badteams = false, bool bots 
 	int PlayersNum = 0;
 
 	for(int i = 1; i <= MaxClients; i++){
-		if(IsClientInGame(i) && (stv == true || !IsClientSourceTV(i)) && (bots == true || !IsFakeClient(i))){
-			if(Team == -2001 && (badteams == true || (GetClientTeam(i) != 0)))
+		if(IsClientInGame(i) && ((stv == true) || (!IsClientSourceTV(i))) && ((bots == true) || (!IsFakeClient(i)))){
+			if(Team == -2001 && ((badteams == true) || (GetClientTeam(i) != 0)))
 				PlayersNum++;
 			else if(Team == GetClientTeam(i))
 				PlayersNum++;
