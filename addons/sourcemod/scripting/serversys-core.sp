@@ -25,7 +25,7 @@ bool g_bServerID_Loaded = false;
 * General settings
 */
 bool 	g_Settings_bTeamOverride;
-
+bool 	g_Settings_bTeamOverride_Respawn;
 /**
 * Database settings
 */
@@ -281,6 +281,7 @@ void LoadConfig(char[] map_name = ""){
 			SetFailState("[serversys] core :: Invalid Server ID or Server Name supplied.");
 
 		g_Settings_bTeamOverride = view_as<bool>(KvGetNum(kv, "team_override", 0));
+		g_Settings_bTeamOverride_Respawn = view_as<bool>(KvGetNum(kv, "team_override_respawn", 1));
 
 		if(KvJumpToKey(kv, "playtime_tracking")){
 			g_Settings_bPlayTime = view_as<bool>(KvGetNum(kv, "enabled", 0));
@@ -772,7 +773,8 @@ public Action Command_JoinTeam(int client, const char[] command, int argc){
 			switch(team){
 				case CS_TEAM_T, CS_TEAM_CT:{
 					CS_SwitchTeam(client, team);
-					CS_RespawnPlayer(client);
+					if(g_Settings_bTeamOverride_Respawn)
+						CS_RespawnPlayer(client);
 				}
 				case CS_TEAM_SPECTATOR:{
 					ForcePlayerSuicide(client);
