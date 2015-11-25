@@ -10,16 +10,20 @@ SourceMod Server-Sys is a simple, yet advanced server configuration system. For 
 |:------------------------------------------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------------------------:|
 
 ## Compatibility
-* Counter-Strike: Source
 * Counter-Strike: Global Offensive
+* Counter-Strike: Source
 * Team Fortress 2
-* Any other SourceMod compatible game (certain features may be unavailable, like respawning)
+* Any SourceMod game*
+
+** Denotes that some features may not be available. There should be notes regarding the availability in the configuration files.
 
 ## Supported Modules
-* [Ads](#) - Advertisements from SQL, featuring ability for users to toggle their display (!ads or /ads)
-* [Demos & Reports](https://github.com/whocodes/serversys-demos) - Auto-demo recording, all demos saved to SQL and uploaded to FTP. Support for player vs player reports (!report or /report) which are linked to the recording.
+* [Ads](https://github.com/whocodes/serversys-ads) - Advertisements from SQL, featuring ability for users to toggle their display (!ads or /ads) - Currently you have to insert rows into table manually.
+* [Demos & Reports](https://github.com/whocodes/serversys-demos) - Auto-demo recording, all demos saved to SQL and uploaded to FTP. Support for player vs player reports (!report or /report) which are linked to the recording for later review.
+* [UMsgHack](https://github.com/whocodes/serversys-umsghack) - Filter certain chat usermessages from being sent to clients (chat clean-up).
+* [Chat Colors](https://github.com/whocodes/serversys-chatcolors) - Let players with a certain flag assign themselves custom name/message colors, plus format a totally custom tag with unlimited colors!
 
-We expect this library of modules to expand soon.
+Expect this library of modules to expand soon (especially after the release of Server-Sys Web).
 
 ## Requirements
 * [SourceMod](https://github.com/alliedmodders/sourcemod) 1.7+ by @alliedmodders (visit [alliedmods.net](http://alliedmods.net))
@@ -28,6 +32,7 @@ We expect this library of modules to expand soon.
 
 ## Installation
 Visit the [Getting Started](https://github.com/whocodes/serversys/wiki/Getting-Started) page in the Wiki for a tutorial on installation.
+
 
 ## Features
 * [x] Map-specific configuration integration
