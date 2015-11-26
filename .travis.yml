@@ -41,4 +41,5 @@ after_success:
   - mkdir $PLUGINS
   - cp -rv build-env/addons/sourcemod/scripting/compiled/. $PLUGINS
   - rm -r build-env
-  - find . -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} ftp://$FTPPATH/whocodes/public/git-build/$TRAVIS_REPO_SLUG/$TRAVIS_BUILD_NUMBER/{} \;
+  - zip -9rq $TRAVIS_COMMIT.zip addons
+  - find $TRAVIS_COMMIT.zip -type f -exec curl --user $FTPUSER:$FTPPASS --ftp-create-dirs -T {} ftp://$FTPPATH/whocodes/public/git-build/serversys/$TRAVIS_COMMIT/{} \;
