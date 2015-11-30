@@ -1,13 +1,12 @@
 # Server-Sys
-**In development, install and use at your own risk. There is no guarantee that all features will work. However, feel free to test the plugins.**
+**In development, (although functional) install and use at your own risk. There is no guarantee that all features will work.**
+
+Server-Sys is built with large communities and multiple server management in mind.
 
 [![Build Status](https://travis-ci.org/whocodes/serversys.svg?branch=master)](https://travis-ci.org/whocodes/serversys)
 
 ## Description
 SourceMod Server-Sys is a simple, yet advanced server configuration system. For those core functionality features that you're inevitable to add anyways, this covers those in an optimized neat fashion, with advanced configuration ability.
-
-| Highly Configurable [![Thumbnail](http://whocodes.pw/ss/2015-07-02_23-33-40-thumbnail.jpg)](http://whocodes.pw/ss/2015-07-02_23-33-40.png) | Module Support [![Thumbnail](http://whocodes.pw/ss/2015-07-02_23-55-43.png)](http://whocodes.pw/ss/2015-07-02_23-52-14.png) |
-|:------------------------------------------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------------------------:|
 
 ## Compatibility
 * Counter-Strike: Global Offensive
@@ -33,17 +32,17 @@ Expect this library of modules to expand soon (especially after the release of S
 ## Installation
 Visit the [Getting Started](https://github.com/whocodes/serversys/wiki/Getting-Started) page in the Wiki for a tutorial on installation.
 
+## Builds
+To view the latest successful build outputs, check out [whocodes.pw/projects](https://whocodes.pw/projects). This is where all automatic builds are uploaded to. The zipped archives should contain everything required to run a plugin.
 
 ## Features
-* [x] Map-specific configuration integration
-* [x] Multiple settings required for many custom modes
-* [x] Server ID, Player ID and Map ID registration to centralize data
-* [x] Tracks players and maps play-time for individual servers and overall
-* [x] Custom chat trigger support with simple alias support
-* [x] 100% translation based in-game messages
-* [ ] Web configuration/management module/application (PHP based option + possible node/io.js based option)
-* [ ] Game-mode modules (possible modes include timer-based modes, jailbreak, TTT and others)
-* [ ] Bans + Admins modules to replace SourceBans
+* Map-specific configurations
+* Multiple settings required for many different types of game-play (in one central folder)
+* Server ID, Player ID, and Map ID registration to simplify plugin integration
+* Simple module support with tons of natives and forwards for easy implementation
+* 100% translation-based in-game text display (no hard-coded phrases at all)
+* (WIP) Web-Management module with statistical information
+* (WIP) Bans + Admins modules to replace SourceBans
 
 
 ## Contributing
