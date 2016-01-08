@@ -34,14 +34,12 @@ int		g_Settings_iServerID;
 char	g_Settings_cServerName[64];
 char	g_Settings_cServerIP[64];
 
-bool 	g_Settings_bPlayTime;
-
-
 /**
 * Database variables
 */
 bool 	g_SysDB_bConnected;
 Handle 	g_SysDB;
+int		g_iSafeConnectCount = 0;
 
 /**
 * MapConfig settings
@@ -89,7 +87,6 @@ int 	g_Settings_iSpawnProtection_Method = 0;
 */
 bool 	g_bSpawnProtectionGlobal = false;
 bool 	g_bSpawnProtection[MAXPLAYERS+1] = {false, ...};
-int		g_iSafeConnectCount = 1;
 
 /**
 * God-mode settings
@@ -125,8 +122,9 @@ Sys_ChatCommand_CB g_fCC_Callback[SYS_MAX_COMMANDS];
 int g_iCC_Count;
 
 /**
-* Server functionality variables
+* Functionality variables
 */
+
 
 bool 	g_bLateLoad = false;
 bool 	g_bInMap = false;
@@ -140,11 +138,6 @@ int 	g_iHeadGroup = 1;
 
 bool	g_bPlayerIDLoaded[MAXPLAYERS + 1];
 int		g_iPlayerID[MAXPLAYERS + 1];
-
-int g_iMapStartTime;
-float g_fPlayerJoinTime[MAXPLAYERS + 1];
-
-bool	g_bPlayTimeLoaded[MAXPLAYERS+1];
 
 
 public void OnPluginStart(){
@@ -218,9 +211,7 @@ public void OnAllPluginsLoaded(){
 }
 
 public void OnDatabaseLoaded(bool success){
-	g_SysDB_bConnected = success;
-
-	if(!g_SysDB_bConnected)
+	if(!success)
 		return;
 
 	Sys_DB_RegisterServer();
@@ -240,12 +231,6 @@ public void OnServerIDLoaded(int serverID){
 			}
 		}
 	}
-}
-
-public void OnPlayerIDLoaded(int client, int playerID){
-	g_iPlayerID[client] = playerID;
-
-	Sys_DB_RegisterPlayTime(client);
 }
 
 void LoadConfig(char[] map_name = ""){
@@ -282,14 +267,6 @@ void LoadConfig(char[] map_name = ""){
 
 		g_Settings_bTeamOverride = view_as<bool>(KvGetNum(kv, "team_override", 0));
 		g_Settings_bTeamOverride_Respawn = view_as<bool>(KvGetNum(kv, "team_override_respawn", 1));
-
-		if(KvJumpToKey(kv, "playtime_tracking")){
-			g_Settings_bPlayTime = view_as<bool>(KvGetNum(kv, "enabled", 0));
-
-			KvGoBack(kv);
-		}else{
-			g_Settings_bPlayTime = false;
-		}
 
 		KvGoBack(kv);
 	}else
@@ -399,15 +376,11 @@ public void OnClientDisconnect(int client){
 	SDKUnhook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
 	SDKUnhook(client, SDKHook_TraceAttack, Hook_TraceAttack);
 	SDKUnhook(client, SDKHook_SetTransmit, Hook_SetTransmit);
-
-	if(g_Settings_bPlayTime && g_bPlayerIDLoaded[client] && g_bPlayTimeLoaded[client]){
-		Sys_DB_UpdatePlayTime(client);
-	}
 }
 
 public void OnClientAuthorized(int client, const char[] sauth){
+	g_iPlayerID[client] = 0;
 	Sys_DB_RegisterPlayer(client);
-	g_fPlayerJoinTime[client] = GetEngineTime();
 }
 
 public void Command_ToggleHide(int client, const char[] command, const char[] args){
@@ -469,8 +442,10 @@ void Sys_DB_Connect(char[] database){
 
 public void Sys_DB_Connect_CB(Handle owner, Handle hndl, const char[] error, any data){
 	if(g_iSafeConnectCount >= 5){
+		g_SysDB_bConnected = false;
+
 		Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
-		Call_PushCell(false);
+		Call_PushCell(g_SysDB_bConnected);
 		Call_Finish();
 
 		SetFailState("[serversys] core :: Reached connection count without success. Plugin stopped.");
@@ -496,10 +471,10 @@ public void Sys_DB_Connect_CB(Handle owner, Handle hndl, const char[] error, any
 	}
 
 	Call_StartForward(g_hF_Sys_OnDatabaseLoaded);
-	Call_PushCell(true);
+	Call_PushCell(g_SysDB_bConnected);
 	Call_Finish();
 
-	g_iSafeConnectCount = 1;
+	g_iSafeConnectCount = 0;
 }
 
 void Sys_DB_RegisterServer(){
@@ -630,13 +605,13 @@ public void Sys_DB_RegisterPlayer_CB(Handle owner, Handle hndl, const char[] err
 		Sys_DB_EscapeString(name, MAX_NAME_LENGTH, safename, size);
 
 		char query[255];
-		Format(query, sizeof(query), "UPDATE users SET name='%s', lastseen = UNIX_TIMESTAMP() WHERE pid=%d;", safename, playerid);
+		Format(query, sizeof(query), "UPDATE users SET name='%s', lastseen = UNIX_TIMESTAMP() WHERE pid=%d;", safename, g_iPlayerID[client]);
 
 		Sys_DB_TQuery(Sys_DB_GenericCallback, query, _, DBPrio_Normal);
 
 		Call_StartForward(g_hF_Sys_OnPlayerIDLoaded);
 		Call_PushCell(client);
-		Call_PushCell(playerid);
+		Call_PushCell(g_iPlayerID[client]);
 		Call_Finish();
 	}
 	else
@@ -664,72 +639,6 @@ public void Sys_DB_RegisterPlayer_CB_CB(Handle owner, Handle hndl, const char[] 
 	{
 		Sys_DB_RegisterPlayer(client);
 	}
-}
-
-public void Sys_DB_RegisterPlayTime(int client){
-	int pid = g_iPlayerID[client];
-	int sid = g_Settings_iServerID;
-
-	char query[255];
-	Format(query, sizeof(query), "SELECT time FROM playtime WHERE pid = %d AND sid = %d;", pid, sid);
-
-	Sys_DB_TQuery(Sys_DB_RegisterPlayTime_CB, query, GetClientUserId(client), DBPrio_High);
-}
-
-public void Sys_DB_RegisterPlayTime_CB(Handle owner, Handle hndl, const char[] error, any data){
-	int client = GetClientOfUserId(data);
-
-	if(client == 0 || (!IsClientConnected(client)))
-		return;
-
-	if(hndl == INVALID_HANDLE){
-		LogError("[serversys] core :: Error loading playtime for (%N): %s", client, error);
-		return;
-	}
-
-	if(!SQL_FetchRow(hndl)){
-		g_bPlayTimeLoaded[client] = false;
-		int pid = g_iPlayerID[client];
-		int sid = g_Settings_iServerID;
-
-		char query[255];
-		Format(query, sizeof(query), "INSERT INTO playtime (pid, sid) VALUES (%d, %d);", pid, sid);
-
-		Sys_DB_TQuery(Sys_DB_RegisterPlayTime_CB_CB, query, GetClientUserId(client), DBPrio_High);
-	}
-	else
-	{
-		g_bPlayTimeLoaded[client] = true;
-	}
-}
-
-public void Sys_DB_RegisterPlayTime_CB_CB(Handle owner, Handle hndl, const char[] error, any data){
-	int client = GetClientOfUserId(data);
-
-	if(client == 0 || (!IsClientConnected(client)))
-		return;
-
-	if(hndl == INVALID_HANDLE){
-		LogError("[serversys] core :: Error loading playtime for (%N): %s", client, error);
-		return;
-	}
-	else
-	{
-		Sys_DB_RegisterPlayTime(client);
-	}
-
-}
-
-public void Sys_DB_UpdatePlayTime(int client){
-	int pid = g_iPlayerID[client];
-	int sid = g_Settings_iServerID;
-	int time = RoundToFloor(GetEngineTime() - g_fPlayerJoinTime[client]);
-
-	char query[255];
-	Format(query, sizeof(query), "UPDATE playtime SET time = time+%d WHERE pid = %d AND sid = %d;",
-		pid, sid, time, pid, sid);
-
-	Sys_DB_TQuery(Sys_DB_GenericCallback, query, GetClientUserId(client), DBPrio_High);
 }
 
 public Action Event_PlayerSpawn(Handle event, const char[] name, bool PreventBroadcast){
@@ -1002,7 +911,6 @@ public Action Timer_SpawnProtection(Handle timer, any clientID){
 
 public void OnMapStart(){
 	g_bInMap = true;
-	g_iMapStartTime = GetTime();
 	GetCurrentMap(g_cMapName, sizeof(g_cMapName));
 
 	if(g_SysDB_bConnected){
@@ -1015,15 +923,8 @@ public void OnMapStart(){
 }
 
 public void OnMapEnd(){
-	if(Sys_GetMapID() != -1){
-		char query[1024];
-		Format(query, sizeof(query), "INSERT INTO maptime (sid, mid) VALUES (%d, %d) ON DUPLICATE KEY UPDATE time = time + %d;",
-			Sys_GetServerID(), Sys_GetMapID(), (GetTime() - g_iMapStartTime));
-
-		Sys_DB_TQuery(Sys_DB_GenericCallback, query);
-	}
 	g_bInMap = false;
-	g_iMapID = 0;
+	g_iMapID = -1;
 	Format(g_cMapName, sizeof(g_cMapName), "");
 }
 
