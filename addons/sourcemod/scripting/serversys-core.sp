@@ -184,6 +184,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Sys_DB_Connected", Native_DB_Connected);
 	CreateNative("Sys_DB_Query", Native_DB_Query);
 	CreateNative("Sys_DB_TQuery", Native_DB_TQuery);
+	CreateNative("Sys_DB_ExecuteTransaction", Native_DB_ExecuteTransaction);
 	CreateNative("Sys_DB_EscapeString", Native_DB_EscapeString);
 
 	g_hF_Sys_OnDatabaseLoaded = CreateGlobalForward("OnDatabaseLoaded", ET_Event, Param_Cell);
@@ -1012,12 +1013,12 @@ public int Native_DB_TQuery(Handle plugin, int numParams){
 	}
 }
 
-public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] error, DataPack data){
+public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] error, any data){
 	data.Reset();
 
 	Handle plugin = view_as<Handle>(data.ReadCell());
 	SQLTCallback callback = view_as<SQLTCallback>(data.ReadFunction());
-	DataPack hPack = data.ReadCell();
+	any hPack = view_as<any>(data.ReadCell());
 
 	Sys_KillHandle(data);
 
@@ -1026,6 +1027,62 @@ public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] er
 	Call_PushCell(hndl);
 	Call_PushString(error);
 	Call_PushCell(hPack);
+	Call_Finish();
+}
+
+public int Native_DB_ExecuteTransaction(Handle plugin, int numParams){
+	if(g_SysDB_bConnected){
+		Transaction hTrans = view_as<Transaction>GetNativeCell(1);
+		Sys_TxnSuccess hSucc = view_as<Sys_TxnSuccess>GetNativeFunction(2);
+		Sys_TxnFailure hFail = view_as<Sys_TxnFailure>GetNativeFunction(3);
+
+		any data = view_as<any>(GetNativeCell(4));
+		DBPriority prio = GetNativeCell(5);
+
+		DataPack hPack = CreateDataPack();
+		hPack.WriteCell(plugin);
+		hPack.WriteFunction(hSucc);
+		hPack.WriteFunction(hFail);
+		hPack.WriteCell(data);
+
+		SQL_ExecuteTransaction(g_SysDB, hTrans, Native_DB_Transaction_Success, Native_DB_Transaction_Failure, hPack, prio);
+	}
+}
+
+public void Native_DB_Transaction_Success(Handle db, any data, int numQueries, Handle[] results, any[] queryData){
+	data.Reset();
+
+	Handle plugin = view_as<Handle>(data.ReadCell());
+	Sys_TxnSuccess callback = view_as<Sys_TxnSuccess>(data.ReadFunction());
+	data.ReadFunction();
+	any hdata = view_as<any>(data.ReadCell());
+
+	Sys_KillHandle(data);
+
+	Call_StartFunction(plugin, callback);
+	Call_PushCell(hdata);
+	Call_PushCell(numQueries);
+	Call_PushCell(results);
+	Call_PushCell(queryData);
+	Call_Finish();
+}
+
+public void Native_DB_Transaction_Failure(Handle db, any data, int numQueries, const char[] error, int failIndex, any[] queryData){
+	data.Reset();
+
+	Handle plugin = view_as<Handle>(data.ReadCell());
+	data.ReadFunction();
+	Sys_TxnFailure callback = view_as<Sys_TxnFailure>(data.ReadFunction());
+	any hdata = view_as<any>(data.ReadCell());
+
+	Sys_KillHandle(data);
+
+	Call_StartFunction(plugin, callback);
+	Call_PushCell(hdata);
+	Call_PushCell(numQueries);
+	Call_PushString(error);
+	Call_PushCell(failIndex);
+	Call_PushCell(queryData);
 	Call_Finish();
 }
 

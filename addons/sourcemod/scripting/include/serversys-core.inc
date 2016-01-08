@@ -9,6 +9,9 @@ typeset Sys_ChatCommand_CB {
 	function void(int client, const char[] command, const char[] args);
 }
 
+typedef Sys_TxnSuccess = function void(any data, int numQueries, Handle[] results, any[] queryData);
+typedef Sys_TxnFailure = function void(any data, int numQueries, const char[] error, int failIndex, any[] queryData);
+
 enum {
 	NOBLOCK_TYPE_COLLISIONGROUP = 0,
 	NOBLOCK_TYPE_SOLIDTYPE = 1
@@ -212,11 +215,24 @@ native void Sys_DB_TQuery(SQLTCallback callback, const char[] query, any data = 
 * Do not use this function for high-cost methods, as server locking up is
 * possible.
 *
-* @param query			Query to execute.
+* @param query		    Query to execute.
 *
 * @return               DBResultSet result
 */
 native DBResultSet Sys_DB_Query(const char[] query);
+
+/**
+* This is the same as SQL_ExecuteTransaction but ran on our database
+* handle. Callbacks are the same except they are not passed the
+* database handle as is with SQLTxnSuccess and SQLTxnFailure.
+*
+* @param txn            Transaction to execute.
+* @param onSuccess      Optional success callback.
+* @param onFailure      Optional failure callback.
+* @param data           Optional data to pass to callback.
+* @param prio       Optional priority for the transaction.
+*/
+native void Sys_DB_ExecuteTransaction(Transaction txn, Sys_TxnSuccess onSuccess = INVALID_FUNCTION, Sys_TxnFailure onFailure = INVALID_FUNCTION, any data = 0, DBPriority prio = DBPrio_Normal);
 
 /**
 * Escapes a string like normal SQL_EscapeString.
@@ -261,6 +277,7 @@ public __pl_serversys_core_SetNTVOptional(){
     MarkNativeAsOptional("Sys_DB_TQuery");
     MarkNativeAsOptional("Sys_DB_Query");
     MarkNativeAsOptional("Sys_DB_EscapeString");
+    MarkNativeAsOptional("Sys_DB_ExecuteTransaction");
     MarkNativeAsOptional("Sys_DB_Connected");
 }
 #endif
