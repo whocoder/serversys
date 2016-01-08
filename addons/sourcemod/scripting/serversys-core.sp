@@ -124,8 +124,6 @@ int g_iCC_Count;
 /**
 * Functionality variables
 */
-
-
 bool 	g_bLateLoad = false;
 bool 	g_bInMap = false;
 bool	g_bInRound = false;
@@ -1014,8 +1012,7 @@ public int Native_DB_TQuery(Handle plugin, int numParams){
 	}
 }
 
-public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] error, DataPack data)
-{
+public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] error, DataPack data){
 	data.Reset();
 
 	Handle plugin = view_as<Handle>(data.ReadCell());
