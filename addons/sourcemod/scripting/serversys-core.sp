@@ -1068,7 +1068,7 @@ public void Native_DB_Transaction_Success(Handle db, DataPack data, int numQueri
 	Call_Finish();
 }
 
-public void Native_DB_Transaction_Failure(Handle db, any data, int numQueries, const char[] error, int failIndex, any[] queryData){
+public void Native_DB_Transaction_Failure(Handle db, DataPack data, int numQueries, const char[] error, int failIndex, any[] queryData){
 	data.Reset();
 
 	Handle plugin = view_as<Handle>(data.ReadCell());
