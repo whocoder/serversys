@@ -1032,12 +1032,12 @@ public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] er
 
 public int Native_DB_ExecuteTransaction(Handle plugin, int numParams){
 	if(g_SysDB_bConnected){
-		Transaction hTrans = view_as<Transaction>GetNativeCell(1);
-		Sys_TxnSuccess hSucc = view_as<Sys_TxnSuccess>GetNativeFunction(2);
-		Sys_TxnFailure hFail = view_as<Sys_TxnFailure>GetNativeFunction(3);
+		Transaction hTrans = view_as<Transaction>(GetNativeCell(1));
+		Sys_TxnSuccess hSucc = view_as<Sys_TxnSuccess>(GetNativeFunction(2));
+		Sys_TxnFailure hFail = view_as<Sys_TxnFailure>(GetNativeFunction(3));
 
-		any data = view_as<any>(GetNativeCell(4));
-		DBPriority prio = GetNativeCell(5);
+		any data = GetNativeCell(4);
+		DBPriority prio = view_as<DBPriority>(GetNativeCell(5));
 
 		DataPack hPack = CreateDataPack();
 		hPack.WriteCell(plugin);
