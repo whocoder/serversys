@@ -1018,7 +1018,7 @@ public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] er
 
 	Handle plugin = view_as<Handle>(data.ReadCell());
 	SQLTCallback callback = view_as<SQLTCallback>(data.ReadFunction());
-	any hPack = view_as<any>(data.ReadCell());
+	any hPack = data.ReadCell();
 
 	Sys_KillHandle(data);
 
@@ -1062,8 +1062,8 @@ public void Native_DB_Transaction_Success(Handle db, DataPack data, int numQueri
 	Call_StartFunction(plugin, callback);
 	Call_PushCell(hdata);
 	Call_PushCell(numQueries);
-	Call_PushCell(view_as<any>(results));
-	Call_PushCell(view_as<any>(queryData));
+	Call_PushCellRef(view_as<any>(results));
+	Call_PushCellRef(view_as<any>(queryData));
 	Call_Finish();
 }
 
@@ -1082,7 +1082,7 @@ public void Native_DB_Transaction_Failure(Handle db, any data, int numQueries, c
 	Call_PushCell(numQueries);
 	Call_PushString(error);
 	Call_PushCell(failIndex);
-	Call_PushCell(view_as<any>(queryData));
+	Call_PushCellRef(queryData);
 	Call_Finish();
 }
 
