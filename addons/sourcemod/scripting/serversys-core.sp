@@ -2,6 +2,7 @@
 #include <sdkhooks>
 
 #include <serversys>
+#include <smlib>
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
