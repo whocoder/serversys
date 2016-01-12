@@ -36,13 +36,16 @@ Visit the [Getting Started](https://github.com/whocodes/serversys/wiki/Getting-S
 To view the latest successful build outputs, check out [whocodes.pw/projects](https://whocodes.pw/projects). This is where all automatic builds are uploaded to. The zipped archives should contain everything required to run a plugin.
 
 ## Features
-* Map-specific configurations
-* Multiple settings required for many different types of game-play (in one central folder)
-* Server ID, Player ID, and Map ID registration to simplify plugin integration
-* Simple module support with tons of natives and forwards for easy implementation
-* 100% translation-based in-game text display (no hard-coded phrases at all)
-* (WIP) Web-Management module with statistical information
-* (WIP) Bans + Admins modules to replace SourceBans
+* Wraps SQL_Query, SQL_TQuery, SQL_EscapeString and SQL_ExecuteTransaction without requirement for database handle.
+* Tons of natives and forwards for complete integration to create an altogether experience between plugins.
+* Exposes Server ID, Player ID, and Map ID registration with forwards and natives for retrieval.
+* Multiple settings that are often required for many types of game-play (in one central folder).
+* Made with reliability, multi-server support, and performance in mind.
+* All database operations used in default modules are threaded.
+* 100% translation-based in-game text display.
+* (WIP) Web Module with Admin CP & player statistical information.
+* (WIP) Bans + Admins modules to replace SourceBans.
+* (WIP) Analytics module to track in depth information about players.
 
 
 ## Contributing
