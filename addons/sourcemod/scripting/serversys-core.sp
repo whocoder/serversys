@@ -1063,8 +1063,8 @@ public void Native_DB_Transaction_Success(Handle db, DataPack data, int numQueri
 	Call_StartFunction(plugin, callback);
 	Call_PushCell(hdata);
 	Call_PushCell(numQueries);
-	Call_PushCellRef(view_as<any>(results));
-	Call_PushCellRef(view_as<any>(queryData));
+	Call_PushArray(results, numQueries - 1);
+	Call_PushArray(queryData, numQueries - 1);
 	Call_Finish();
 }
 
@@ -1083,7 +1083,7 @@ public void Native_DB_Transaction_Failure(Handle db, any data, int numQueries, c
 	Call_PushCell(numQueries);
 	Call_PushString(error);
 	Call_PushCell(failIndex);
-	Call_PushCellRef(queryData);
+	Call_PushArray(queryData, numQueries - 1);
 	Call_Finish();
 }
 
