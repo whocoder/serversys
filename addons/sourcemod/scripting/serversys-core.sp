@@ -1013,7 +1013,7 @@ public int Native_DB_TQuery(Handle plugin, int numParams){
 	}
 }
 
-public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] error, any data){
+public void Native_DB_TQuery_Callback(Handle owner, Handle hndl, const char[] error, DataPack data){
 	data.Reset();
 
 	Handle plugin = view_as<Handle>(data.ReadCell());
@@ -1049,13 +1049,13 @@ public int Native_DB_ExecuteTransaction(Handle plugin, int numParams){
 	}
 }
 
-public void Native_DB_Transaction_Success(Handle db, any data, int numQueries, Handle[] results, any[] queryData){
+public void Native_DB_Transaction_Success(Handle db, DataPack data, int numQueries, Handle[] results, any[] queryData){
 	data.Reset();
 
 	Handle plugin = view_as<Handle>(data.ReadCell());
 	Sys_TxnSuccess callback = view_as<Sys_TxnSuccess>(data.ReadFunction());
 	data.ReadFunction();
-	any hdata = view_as<any>(data.ReadCell());
+	any hdata = data.ReadCell();
 
 	Sys_KillHandle(data);
 
@@ -1073,7 +1073,7 @@ public void Native_DB_Transaction_Failure(Handle db, any data, int numQueries, c
 	Handle plugin = view_as<Handle>(data.ReadCell());
 	data.ReadFunction();
 	Sys_TxnFailure callback = view_as<Sys_TxnFailure>(data.ReadFunction());
-	any hdata = view_as<any>(data.ReadCell());
+	any hdata = data.ReadCell();
 
 	Sys_KillHandle(data);
 
