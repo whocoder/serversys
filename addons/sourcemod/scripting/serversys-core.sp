@@ -146,6 +146,8 @@ public void OnPluginStart(){
 	LoadTranslations("generic.phrases");
 	LoadTranslations("serversys.phrases");
 
+	CreateConVar("sm_serversys_version", SERVERSYS_VERSION, "Current version of Server-Sys", FCVAR_NOTIFY|FCVAR_DONTRECORD);
+
 	HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 	HookEvent("round_start", Event_RoundStart, EventHookMode_Post);
 	HookEvent("round_end", Event_RoundEnd, EventHookMode_Post);
