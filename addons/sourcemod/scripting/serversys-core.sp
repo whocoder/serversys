@@ -382,9 +382,7 @@ public void OnClientDisconnect(int client){
 
 public void OnClientAuthorized(int client, const char[] sauth){
 	g_iPlayerID[client] = 0;
-
-	if((0 < client <= MaxClients) && (0 < GetSteamAccountID(client)))
-		Sys_DB_RegisterPlayer(client);
+	Sys_DB_RegisterPlayer(client);
 }
 
 public void Command_ToggleHide(int client, const char[] command, const char[] args){
