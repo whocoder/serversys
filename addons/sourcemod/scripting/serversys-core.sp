@@ -33,6 +33,7 @@ bool 	g_Settings_bTeamOverride_Respawn;
 char 	g_Settings_cDatabaseName[32];
 int		g_Settings_iServerID;
 char	g_Settings_cServerName[64];
+char	g_Settings_cServerShort[32];
 char	g_Settings_cServerIP[64];
 
 /**
@@ -179,6 +180,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Sys_GetClientOfPlayerID", Native_GetClientOfPlayerID);
 	CreateNative("Sys_GetServerID", Native_GetServerID);
 	CreateNative("Sys_GetServerName", Native_GetServerName);
+	CreateNative("Sys_GetServerShort", Native_GetServerShort);
 	CreateNative("Sys_GetServerIP", Native_GetServerIP);
 	CreateNative("Sys_GetMapID", Native_GetMapID);
 
@@ -263,6 +265,8 @@ void LoadConfig(char[] map_name = ""){
 		KvGetString(kv, "server_ip", g_Settings_cServerIP, sizeof(g_Settings_cServerIP), "127.0.0.1");
 
 		KvGetString(kv, "server_name", g_Settings_cServerName, sizeof(g_Settings_cServerName), "none");
+
+		KvGetString(kv, "server_short", g_Settings_cServerShort, sizeof(g_Settings_cServerShort), "none");
 
 		if((g_Settings_iServerID == -1) || StrEqual(g_Settings_cServerName, "none"))
 			SetFailState("[serversys] core :: Invalid Server ID or Server Name supplied.");
@@ -485,13 +489,18 @@ void Sys_DB_RegisterServer(){
 	//g_Settings_iServerID;
 	int size = (2*64+1);
 	char[] safename = new char[size];
-
 	Sys_DB_EscapeString(g_Settings_cServerName, 64, safename, size);
 
+	size = (2*32+1);
+	char[] safeshort = new char[size];
+	Sys_DB_EscapeString(g_Settings_cServerShort, 64, safeshort, size);
+
+
 	char query[1024];
-	Format(query, sizeof(query), "INSERT INTO servers (id) VALUES (%d) ON DUPLICATE KEY UPDATE name = '%s', ip = '%s';",
+	Format(query, sizeof(query), "INSERT INTO servers (id) VALUES (%d) ON DUPLICATE KEY UPDATE name = '%s', `short` = '%s', ip = '%s';",
 		g_Settings_iServerID,
 		safename,
+		safeshort,
 		g_Settings_cServerIP);
 
 	Sys_DB_TQuery(Sys_DB_RegisterServer_CB, query, _, DBPrio_High);
