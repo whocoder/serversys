@@ -12,9 +12,9 @@ SourceMod Server-Sys is a simple, yet advanced server configuration system. For 
 * Counter-Strike: Global Offensive
 * Counter-Strike: Source
 * Team Fortress 2
-* Any SourceMod game*
+* Any SourceMod compatible game*
 
-** Denotes that some features may not be available. There should be notes regarding the availability in the configuration files.
+\* Denotes that some features may not be available. There should be notes regarding the availability in the configuration files.
 
 ## Supported Modules
 * [Ads](https://github.com/whocodes/serversys-ads) - Advertisements from SQL, featuring ability for users to toggle their display (!ads or /ads) - Currently you have to insert rows into table manually.
