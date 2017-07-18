@@ -1202,6 +1202,13 @@ public int Native_GetServerName(Handle plugin, int numParams){
 	SetNativeString(1, buff, len);
 }
 
+public int Native_GetServerShort(Handle plugin, int numParams){
+	int len = GetNativeCell(2);
+	char[] buff = new char[len];
+	Format(buff, len, "%s", g_Settings_cServerShort);
+	SetNativeString(1, buff, len);
+}
+
 public int Native_GetServerIP(Handle plugin, int numParams){
 	int len = GetNativeCell(2);
 	char[] buff = new char[len];
